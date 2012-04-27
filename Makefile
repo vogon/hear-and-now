@@ -1,7 +1,7 @@
-CFLAGS = --std=c99 -I./include
-CXXFLAGS = -I./include
+CFLAGS = -ggdb --std=c99 -I./include -Wall
+CXXFLAGS = -ggdb -I./include -Wall
 LIBS = -lwinmm
-LDFLAGS = --shared
+LDFLAGS = --shared -g
 
 all: bin/hear-now.dll bin/test.exe
 
@@ -14,5 +14,5 @@ clean:
 bin/test.exe: src/main.o
 	$(CC) -o $@ $^ -Lbin -lhear-now
 
-bin/hear-now.dll: src/audio.o src/win32/audio-win32.o
+bin/hear-now.dll: src/audio.o src/mixer.o src/win32/audio-win32.o
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)

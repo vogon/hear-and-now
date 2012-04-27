@@ -19,17 +19,25 @@ typedef struct HnAudio
 	void *pImpl;
 
     void (*close)(struct HnAudio *);
+    void (*watch)(struct HnAudio *, void (*)(uint32_t));
+    void (*write)(struct HnAudio *, uint8_t *, uint32_t);
 } HnAudio;
 
 HnAudio *hn_audio_open();
 
-typedef struct
+typedef struct HnMixer
 {
+    void *pImpl;
 } HnMixer;
 
 HnMixer *hn_mixer_create(HnAudio *pAudio);
 
 void hn_mixer_release(HnMixer *pMixer);
+
+void hn_mixer_add_stream(HnMixer *pMixer, void *pContext,
+    float *(*callback)(void *, uint32_t));
+
+void hn_mixer_start(HnMixer *pMixer);
 
 #ifdef __cplusplus
 } /* extern "C" */
