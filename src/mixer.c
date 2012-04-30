@@ -55,7 +55,7 @@ void hn_mixer_add_stream(HnMixer *pMixer, void *pContext,
     Stream *pStream = (Stream *)malloc(sizeof(Stream));
 
     pStream->pContext = pContext;
-    pStream->volume = 0.5f;
+    pStream->volume = 0.2f;
     pStream->callback = callback;
     pStream->pNext = pStream->pPrev = NULL;
 

@@ -15,4 +15,4 @@ bin/test.exe: src/main.o
 	$(CC) -o $@ $^ -Lbin -lhear-now
 
 bin/hear-now.dll: src/audio.o src/mixer.o src/win32/audio-win32.o src/locks-pthread.o
-	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)

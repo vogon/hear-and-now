@@ -7,18 +7,18 @@
 
 #include "audio-win32.h"
 
-struct WAVEHDR_QueueTag
+typedef struct WAVEHDR_QueueTag
 {
     WAVEHDR *pHdr;
-    WAVEHDR_QueueTag *pNext;
-};
+    struct WAVEHDR_QueueTag *pNext;
+} WAVEHDR_QueueTag;
 
-struct WatchCbQueueTag
+typedef struct WatchCbQueueTag
 {
     void (*callback)(void *, uint32_t);
     void *context;
-    WatchCbQueueTag *pNext;
-};
+    struct WatchCbQueueTag *pNext;
+} WatchCbQueueTag;
 
 typedef struct
 {
