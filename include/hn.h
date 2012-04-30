@@ -18,9 +18,11 @@ typedef struct HnAudio
 {
 	void *pImpl;
 
-    void (*close)(struct HnAudio *);
-    void (*watch)(struct HnAudio *, void (*)(uint32_t));
+    void (*watch)(struct HnAudio *, void (*)(void *, uint32_t), void *);
     void (*write)(struct HnAudio *, uint8_t *, uint32_t);
+    uint32_t (*samples_pending)(struct HnAudio *);
+
+    void (*close)(struct HnAudio *);
 } HnAudio;
 
 HnAudio *hn_audio_open();

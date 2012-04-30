@@ -18,9 +18,11 @@ extern "C" {
 
 void hn_win32_audio_open(HnAudio *pAudio);
 
-void hn_win32_audio_watch(HnAudio *pAudio, void (*callback)(uint32_t));
+void hn_win32_audio_watch(HnAudio *pAudio, void (*callback)(void *, uint32_t), void *context);
 
 void hn_win32_audio_write(HnAudio *pAudio, uint8_t *pData, uint32_t len);
+
+uint32_t hn_win32_audio_samples_pending(HnAudio *pAudio);
 
 void hn_win32_audio_close(HnAudio *pAudio);
 

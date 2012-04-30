@@ -13,11 +13,12 @@
 
 void mixer_internal_append_stream(HnMixer_impl *, Stream *);
 
-int gogogo = 0;
-
-void mixer_internal_audio_cb(uint32_t pending)
+void mixer_internal_audio_cb(void *context, uint32_t pending)
 {
-    gogogo = pending < 5;
+    HnMixer_impl *pMixerImpl = (HnMixer_impl *)context;
+
+    pMixerImpl->audioLowWater = (pending < 5);
+    hn_cv_wake(pMixerImpl->pAudioLowWater);
 }
 
 HnMixer *hn_mixer_create(HnAudio *pAudio)
@@ -28,9 +29,14 @@ HnMixer *hn_mixer_create(HnAudio *pAudio)
     pMixer->pImpl = pMixerImpl;
 
     pMixerImpl->pAudio = pAudio;
-    pMixerImpl->pFirstStream = pMixerImpl->pLastStream = NULL;
+    pMixerImpl->audioLowWater = 1;
+    pMixerImpl->pAudioLock = hn_mutex_create();
+    pMixerImpl->pAudioLowWater = hn_cv_create();
 
-    pAudio->watch(pAudio, mixer_internal_audio_cb);
+    pMixerImpl->pFirstStream = pMixerImpl->pLastStream = NULL;
+    pMixerImpl->pStreamLock = hn_mutex_create();
+
+    pAudio->watch(pAudio, mixer_internal_audio_cb, pMixerImpl);
 
     return pMixer;
 }
@@ -64,6 +70,8 @@ void hn_mixer_start(HnMixer *pMixer)
     {
         float accum[BUFFER_LENGTH] = {0.0f};
 
+        hn_mutex_lock(pImpl->pStreamLock);
+
         for (Stream *pStream = pImpl->pFirstStream;
              pStream != NULL; pStream = pStream->pNext)
         {
@@ -81,6 +89,8 @@ void hn_mixer_start(HnMixer *pMixer)
 
             free(source);
         }
+
+        hn_mutex_unlock(pImpl->pStreamLock);
 
         /* mix these floats down to int8_t */
         uint8_t *intAccum = (uint8_t *)malloc(BUFFER_LENGTH);
@@ -104,18 +114,23 @@ void hn_mixer_start(HnMixer *pMixer)
         }
 */
         /* send it to threadless */
+        hn_mutex_lock(pImpl->pAudioLock);
+
         pImpl->pAudio->write(pImpl->pAudio, intAccum, BUFFER_LENGTH);
 
-        while (!gogogo)
+        if (pImpl->pAudio->samples_pending(pImpl->pAudio) > 5)
         {
-            usleep(20000);
+            hn_cv_sleep(pImpl->pAudioLowWater, pImpl->pAudioLock);
         }
-        
+
+        hn_mutex_unlock(pImpl->pAudioLock);
     }
 }
 
 void mixer_internal_append_stream(HnMixer_impl *pMixerImp, Stream *pStream)
 {
+    hn_mutex_lock(pMixerImp->pStreamLock);
+
     Stream *pPrev = pMixerImp->pLastStream;
 
     if (NULL != pPrev)
@@ -130,4 +145,6 @@ void mixer_internal_append_stream(HnMixer_impl *pMixerImp, Stream *pStream)
     }
 
     pMixerImp->pLastStream = pStream;
+
+    hn_mutex_unlock(pMixerImp->pStreamLock);
 }

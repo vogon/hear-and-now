@@ -9,6 +9,7 @@
 #define _HN_MIXER_H
 
 #include "hn.h"
+#include "locks.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,7 +27,12 @@ typedef struct Stream
 typedef struct 
 {
     HnAudio *pAudio;
+    uint32_t audioLowWater;
+    HnMutex *pAudioLock;
+    HnConditionVariable *pAudioLowWater;
+
     Stream *pFirstStream, *pLastStream;
+    HnMutex *pStreamLock;
 } HnMixer_impl;
 
 #ifdef __cplusplus
