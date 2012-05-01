@@ -6,20 +6,16 @@
 
 #include "hn.h"
 
-#define FULL_SCALE_LOW -128
-#define FULL_SCALE_HIGH 127
-#define SAMPLE_RATE 44100
-
 typedef struct Saw {
     float step;
     float last;
 } Saw;
 
-Saw *make_sawtooth(float frequency)
+Saw *make_sawtooth(HnAudioFormat *pFormat, float frequency)
 {
     Saw *result = (Saw *)malloc(sizeof(struct Saw));
 
-    float samples_per_cycle = (float)SAMPLE_RATE / frequency;
+    float samples_per_cycle = (float)pFormat->samplesPerSecond / frequency;
 
     result->step = 1.0f / samples_per_cycle;
     result->last = -result->step;
@@ -56,13 +52,15 @@ float up(float root, uint8_t semitones)
 
 int main() 
 {
+    HnAudioFormat fmt = { 44100, 8, 1 };
+
     float root = 220.0f;
     float third = up(root, 4);
     float fifth = up(root, 7);
 
-    Saw *saw = make_sawtooth(root);
-    Saw *saw2 = make_sawtooth(third);
-    Saw *saw3 = make_sawtooth(fifth);
+    Saw *saw = make_sawtooth(&fmt, root);
+    Saw *saw2 = make_sawtooth(&fmt, third);
+    Saw *saw3 = make_sawtooth(&fmt, fifth);
 
     // float *wave = gen_sawtooth(saw, 512);
     
@@ -71,7 +69,7 @@ int main()
     //     printf("%hhd, ", (int8_t)((wave[i] * 0.5f * (127 - -128)) - 128));
     // }
 
-    HnAudio *audio = hn_audio_open();
+    HnAudio *audio = hn_audio_open(&fmt);
     HnMixer *mixer = hn_mixer_create(audio);
 
     hn_mixer_add_stream(mixer, saw, gen_sawtooth);

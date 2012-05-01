@@ -149,13 +149,16 @@ void CALLBACK wave_out_proc(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance,
     }
 }
 
-HnAudio *hn_win32_audio_open()
+HnAudio *hn_win32_audio_open(HnAudioFormat *pFormat)
 {
     HnAudio_Win32 *pImpl = 
         (HnAudio_Win32 *)calloc(1, sizeof(HnAudio_Win32));
     
     WAVEFORMATEX wfex;
-    build_wfex(&wfex, 44100, 8, 1);
+    build_wfex(&wfex, 
+               pFormat->samplesPerSecond, 
+               pFormat->sampleResolution, 
+               pFormat->numberOfChannels);
 
     waveOutOpen(&(pImpl->hwo), 0, &wfex, (DWORD_PTR)wave_out_proc, 
         (DWORD_PTR)pImpl, CALLBACK_FUNCTION);

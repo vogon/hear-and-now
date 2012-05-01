@@ -10,9 +10,9 @@
 #include "audio.h"
 #include "win32/audio-win32.h"
 
-HnAudio *hn_audio_open() 
+HnAudio *hn_audio_open(HnAudioFormat *pFormat) 
 {
-    return hn_win32_audio_open();
+    return hn_win32_audio_open(pFormat);
 }
 
 void hn_audio_watch(HnAudio *pAudio, void (*callback)(void *, uint32_t), void *context)

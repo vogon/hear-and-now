@@ -14,10 +14,17 @@
 extern "C" {
 #endif
 
+typedef struct HnAudioFormat
+{
+    uint32_t samplesPerSecond;
+    uint8_t sampleResolution;
+    uint8_t numberOfChannels;
+} HnAudioFormat;
+
 struct HnAudio;
 typedef struct HnAudio HnAudio;
 
-HnAudio *hn_audio_open();
+HnAudio *hn_audio_open(HnAudioFormat *pFormat);
 
 void hn_audio_watch(HnAudio *pAudio, void (*callback)(void *, uint32_t), void *context);
 

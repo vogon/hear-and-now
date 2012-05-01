@@ -16,7 +16,7 @@
 extern "C" {
 #endif
 
-HnAudio *hn_win32_audio_open();
+HnAudio *hn_win32_audio_open(HnAudioFormat *pFormat);
 
 void hn_win32_audio_watch(HnAudio *pAudio, void (*callback)(void *, uint32_t), void *context);
 
