@@ -84,7 +84,8 @@ static void buffer_complete_callback(void *inUserData,
 
     if (pImpl->currentPosition < pImpl->audioLength)
     {
-        if (!CFSetContainsValue(pImpl->pPlayingBuffersSet, inCompleteAQBuffer)) {
+        if (!CFSetContainsValue(pImpl->pPlayingBuffersSet, inCompleteAQBuffer))
+        {
             pImpl->buffersPending++;
             CFSetAddValue(pImpl->pPlayingBuffersSet, inCompleteAQBuffer);
         }
@@ -114,7 +115,8 @@ static void buffer_complete_callback(void *inUserData,
     }
     else
     {
-        if (CFSetContainsValue(pImpl->pPlayingBuffersSet, inCompleteAQBuffer)) {
+        if (CFSetContainsValue(pImpl->pPlayingBuffersSet, inCompleteAQBuffer))
+        {
             pImpl->buffersPending--;
             CFSetRemoveValue(pImpl->pPlayingBuffersSet, inCompleteAQBuffer);
         }
