@@ -9,7 +9,8 @@
 
 #include "hn.h"
 
-typedef struct Saw {
+typedef struct Saw
+{
     float step;
     float last;
 } Saw;
@@ -48,7 +49,8 @@ float *gen_sawtooth(void *context, uint32_t len)
     return buf;
 }
 
-typedef struct Square {
+typedef struct Square
+{
     Saw *saw;
     float pwm;
 } Square;
@@ -67,14 +69,18 @@ float *gen_square(void *context, uint32_t len)
 {
     Square *square = (Square *)context;
     float *buf = gen_sawtooth(square->saw, len);
-    for (int i = 0; i < len; i++) {
+
+    for (int i = 0; i < len; i++)
+    {
         float sample = buf[i];
         buf[i] = sample >= square->pwm ? ceil(sample) : floor(sample);
     }
+
     return buf;
 }
 
-typedef struct Triangle {
+typedef struct Triangle
+{
     Saw *saw;
     int flip;
 } Triangle;
@@ -96,15 +102,18 @@ float *gen_triangle(void *context, uint32_t len)
 
     float *buf = gen_sawtooth(saw, len);
 
-    for (int i = 0; i < len; i++) {
+    for (int i = 0; i < len; i++)
+    {
         float previous = i == 0 ? saw->last : buf[i - 1];
         float current = buf[i];
 
-        if (previous >= current) {
+        if (previous >= current)
+        {
             triangle->flip = !triangle->flip;
         }
 
-        if (triangle->flip) {
+        if (triangle->flip)
+        {
             buf[i] = 1 - current;
         }
     }
