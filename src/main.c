@@ -48,6 +48,31 @@ float *gen_sawtooth(void *context, uint32_t len)
     return buf;
 }
 
+typedef struct Square {
+    Saw *saw;
+    float pwm;
+} Square;
+
+Square *make_square(HnAudioFormat *pFormat, float frequency, float pwm)
+{
+    Square *result = (Square *)malloc(sizeof(Square));
+
+    result->saw = make_sawtooth(pFormat, frequency);
+    result->pwm = pwm;
+
+    return result;
+}
+
+float *gen_square(void *context, uint32_t len)
+{
+    Square *square = (Square *)context;
+    float *buf = gen_sawtooth(square->saw, len);
+    for (int i = 0; i < len; i++) {
+        buf[i] = buf[i] >= square->pwm ? ceil(buf[i]) : floor(buf[i]);
+    }
+    return buf;
+}
+
 float up(float root, uint8_t semitones)
 {
     return root * powf(2.0f, (float)semitones / 12.);
@@ -60,10 +85,12 @@ int main()
     float root = 220.0f;
     float third = up(root, 4);
     float fifth = up(root, 7);
+    float octave = up(root, 12);
 
     Saw *saw = make_sawtooth(&fmt, root);
     Saw *saw2 = make_sawtooth(&fmt, third);
     Saw *saw3 = make_sawtooth(&fmt, fifth);
+    Square *square = make_square(&fmt, octave, 0.5);
 
     // float *wave = gen_sawtooth(saw, 512);
     
@@ -78,6 +105,7 @@ int main()
     hn_mixer_add_stream(mixer, saw, gen_sawtooth);
     hn_mixer_add_stream(mixer, saw2, gen_sawtooth);
     hn_mixer_add_stream(mixer, saw3, gen_sawtooth);
+    hn_mixer_add_stream(mixer, square, gen_square);
 
     hn_mixer_start(mixer);
 
