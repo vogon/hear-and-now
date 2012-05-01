@@ -13,21 +13,8 @@ typedef struct Saw
 {
     float step;
     float last;
+    float *(*generate)(void *, uint32_t);
 } Saw;
-
-Saw *make_sawtooth(HnAudioFormat *pFormat, float frequency)
-{
-    Saw *result = (Saw *)malloc(sizeof(struct Saw));
-
-    float samples_per_cycle = (float)pFormat->samplesPerSecond / frequency;
-
-    result->step = 1.0f / samples_per_cycle;
-    result->last = -result->step;
-
-    // printf("make-sawtooth: %f, %f, %f\n", samples_per_cycle, result->step, result->last);
-
-    return result;
-}
 
 float *gen_sawtooth(void *context, uint32_t len) 
 {
@@ -49,26 +36,34 @@ float *gen_sawtooth(void *context, uint32_t len)
     return buf;
 }
 
-typedef struct Square
+Saw *make_sawtooth(HnAudioFormat *pFormat, float frequency)
 {
-    Saw *saw;
-    float pwm;
-} Square;
+    Saw *result = (Saw *)malloc(sizeof(struct Saw));
 
-Square *make_square(HnAudioFormat *pFormat, float frequency, float pwm)
-{
-    Square *result = (Square *)malloc(sizeof(Square));
+    float samples_per_cycle = (float)pFormat->samplesPerSecond / frequency;
 
-    result->saw = make_sawtooth(pFormat, frequency);
-    result->pwm = pwm;
+    result->step = 1.0f / samples_per_cycle;
+    result->last = -result->step;
+    result->generate = gen_sawtooth;
+
+    // printf("make-sawtooth: %f, %f, %f\n", samples_per_cycle, result->step, result->last);
 
     return result;
 }
 
+typedef struct Square
+{
+    Saw *saw;
+    float pwm;
+    float *(*generate)(void *context, uint32_t len);
+} Square;
+
 float *gen_square(void *context, uint32_t len)
 {
     Square *square = (Square *)context;
-    float *buf = gen_sawtooth(square->saw, len);
+    Saw *saw = square->saw;
+
+    float *buf = saw->generate(saw, len);
 
     for (int i = 0; i < len; i++)
     {
@@ -79,32 +74,34 @@ float *gen_square(void *context, uint32_t len)
     return buf;
 }
 
+Square *make_square(HnAudioFormat *pFormat, float frequency, float pwm)
+{
+    Square *result = (Square *)calloc(1, sizeof(Square));
+
+    result->saw = make_sawtooth(pFormat, frequency);
+    result->pwm = pwm;
+    result->generate = gen_square;
+
+    return result;
+}
+
 typedef struct Triangle
 {
     Saw *saw;
     int flip;
+    float *(*generate)(void *, uint32_t);
 } Triangle;
-
-Triangle *make_triangle(HnAudioFormat *pFormat, float frequency)
-{
-    Triangle *result = (Triangle *)malloc(sizeof(Triangle));
-
-    result->saw = make_sawtooth(pFormat, frequency);
-    result->flip = 0;
-
-    return result;
-}
 
 float *gen_triangle(void *context, uint32_t len)
 {
     Triangle *triangle = (Triangle *)context;
     Saw *saw = triangle->saw;
 
-    float *buf = gen_sawtooth(saw, len);
+    float *buf = saw->generate(saw, len);
 
+    float previous = saw->last;
     for (int i = 0; i < len; i++)
     {
-        float previous = i == 0 ? saw->last : buf[i - 1];
         float current = buf[i];
 
         if (previous >= current)
@@ -116,9 +113,23 @@ float *gen_triangle(void *context, uint32_t len)
         {
             buf[i] = 1 - current;
         }
+
+        previous = current;
     }
 
     return buf;
+}
+
+
+Triangle *make_triangle(HnAudioFormat *pFormat, float frequency)
+{
+    Triangle *result = (Triangle *)malloc(sizeof(Triangle));
+
+    result->saw = make_sawtooth(pFormat, frequency);
+    result->flip = 0;
+    result->generate = gen_triangle;
+
+    return result;
 }
 
 float up(float root, uint8_t semitones)
@@ -136,11 +147,13 @@ int main()
     float octave = up(root, 11);
     float ninth = up(root, 14);
 
-    Square *square = make_square(&fmt, root, 0.5);
-    Saw *saw = make_sawtooth(&fmt, third);
-    Square *square2 = make_square(&fmt, fifth, 0.25);
-    Saw *saw2 = make_sawtooth(&fmt, octave);
-    Triangle *triangle = make_triangle(&fmt, ninth);
+    Triangle *triangles[5] = {
+        make_triangle(&fmt, root),
+        make_triangle(&fmt, third),
+        make_triangle(&fmt, fifth),
+        make_triangle(&fmt, octave),
+        make_triangle(&fmt, ninth)
+    };
 
     // float *wave = gen_sawtooth(saw, 512);
     
@@ -152,11 +165,9 @@ int main()
     HnAudio *audio = hn_audio_open(&fmt);
     HnMixer *mixer = hn_mixer_create(audio);
 
-    hn_mixer_add_stream(mixer, square, gen_square);
-    hn_mixer_add_stream(mixer, saw, gen_sawtooth);
-    hn_mixer_add_stream(mixer, square2, gen_square);
-    hn_mixer_add_stream(mixer, saw2, gen_sawtooth);
-    hn_mixer_add_stream(mixer, triangle, gen_triangle);
+    for (int i = 0; i < 5; i++) {
+        hn_mixer_add_stream(mixer, triangles[i], triangles[i]->generate);
+    }
 
     hn_mixer_start(mixer);
 
