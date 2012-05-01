@@ -12,6 +12,8 @@
 #include <CoreFoundation/CoreFoundation.h>
 
 #include "hn.h"
+#include "audio.h"
+#include "locks.h"
 
 #ifdef __cplusplus
 extern "C" {

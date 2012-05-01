@@ -3,9 +3,6 @@
  * copyright (c) 2012 Colin Bayer & Rob Hanlon
  */
 
-#include <pthread.h>
-
-#include "audio.h"
 #include "audio-darwin.h"
 
 #define AudioQueueBuffer_NUM_BUFFERS 10
@@ -36,7 +33,7 @@ typedef struct
 
     WatchCbQueueTag *pFirstWatchCb, *pLastWatchCb;
 
-    pthread_mutex_t *pMutex;
+    HnMutex *pMutex;
 } HnAudio_Darwin;
 
 const HnAudio_vtbl _HnAudio_Darwin_vtbl =
@@ -81,7 +78,7 @@ static void signal_pending_all(HnAudio_Darwin *pImpl)
 
 static void reset_audio(HnAudio_Darwin *pImpl)
 {
-    pthread_mutex_lock(pImpl->pMutex);
+    hn_mutex_lock(pImpl->pMutex);
 
     if (pImpl->pAudioData != NULL) {
         free(pImpl->pAudioData);
@@ -91,7 +88,7 @@ static void reset_audio(HnAudio_Darwin *pImpl)
     pImpl->audioLength = 0;
     pImpl->currentPosition = 0;
 
-    pthread_mutex_unlock(pImpl->pMutex);
+    hn_mutex_unlock(pImpl->pMutex);
 }
 
 static void buffer_complete_callback(void *inUserData, 
@@ -100,7 +97,7 @@ static void buffer_complete_callback(void *inUserData,
     HnAudio_Darwin *pImpl = (HnAudio_Darwin *)inUserData;
     uint8_t *pCoreAudioBuffer = (uint8_t *) inCompleteAQBuffer->mAudioData;
 
-    pthread_mutex_lock(pImpl->pMutex);
+    hn_mutex_lock(pImpl->pMutex);
     if (pImpl->currentPosition < pImpl->audioLength)
     {
         if (!CFSetContainsValue(pImpl->pBuffersSet, inCompleteAQBuffer)) {
@@ -124,7 +121,7 @@ static void buffer_complete_callback(void *inUserData,
                 bytes);
         pImpl->currentPosition += bytes;
         inCompleteAQBuffer->mAudioDataByteSize = bytes;
-        pthread_mutex_unlock(pImpl->pMutex);
+        hn_mutex_unlock(pImpl->pMutex);
 
         AudioQueueEnqueueBuffer(inAQ, inCompleteAQBuffer, 0, NULL);
     }
@@ -136,7 +133,7 @@ static void buffer_complete_callback(void *inUserData,
         }
     }
 
-    pthread_mutex_unlock(pImpl->pMutex);
+    hn_mutex_unlock(pImpl->pMutex);
     signal_pending_all(pImpl);
 }
 
@@ -176,10 +173,7 @@ HnAudio *hn_darwin_audio_open(HnAudioFormat *pFormat)
                 &pImpl->pBuffers[i]);
     }
 
-    pImpl->pMutex = (pthread_mutex_t *)calloc(1, sizeof(pthread_mutex_t));
-
-    pthread_mutex_init(pImpl->pMutex, NULL);
-
+    pImpl->pMutex = hn_mutex_create();
     pImpl->pVtbl = &_HnAudio_Darwin_vtbl;
 
     return (HnAudio *)pImpl;
@@ -194,10 +188,10 @@ static void set_audio(HnAudio_Darwin *pImpl, uint8_t *pData, uint32_t len)
 {
     reset_audio(pImpl);
 
-    pthread_mutex_lock(pImpl->pMutex);
+    hn_mutex_lock(pImpl->pMutex);
     pImpl->pAudioData = pData;
     pImpl->audioLength = len;
-    pthread_mutex_unlock(pImpl->pMutex);
+    hn_mutex_unlock(pImpl->pMutex);
 }
 
 void hn_darwin_audio_write(HnAudio *pAudio, uint8_t *pData, uint32_t len)
@@ -233,7 +227,7 @@ void hn_darwin_audio_close(HnAudio *pAudio)
     CFRelease(pImpl->pBuffersSet);
     AudioQueueDispose(pImpl->pQueue, true);
 
-    pthread_mutex_destroy(pImpl->pMutex);
+    hn_mutex_destroy(pImpl->pMutex);
 
     free(pImpl->pMutex);
     free(pImpl);
