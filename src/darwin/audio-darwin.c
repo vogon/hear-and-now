@@ -125,23 +125,33 @@ static void buffer_complete_callback(void *inUserData,
     signal_pending_all(pImpl);
 }
 
+static AudioStreamBasicDescription *convertFormat(HnAudioFormat *pFormat) {
+    AudioStreamBasicDescription *result = (AudioStreamBasicDescription *)
+        calloc(1, sizeof(AudioStreamBasicDescription));
+
+    result->mSampleRate = pFormat->samplesPerSecond;
+    result->mFormatID = kAudioFormatLinearPCM;
+    result->mFramesPerPacket = 1;
+    result->mChannelsPerFrame = pFormat->numberOfChannels;
+    result->mBytesPerPacket = (pFormat->sampleResolution >> 3) * pFormat->numberOfChannels;
+    result->mBytesPerFrame = result->mBytesPerPacket;
+    result->mBitsPerChannel = pFormat->sampleResolution;
+    result->mReserved = 0;
+    result->mFormatFlags = 0;
+
+    return result;
+}
+
 HnAudio *hn_darwin_audio_open(HnAudioFormat *pFormat)
 {
     HnAudio_Darwin *pImpl = (HnAudio_Darwin *)malloc(sizeof(HnAudio_Darwin));
 
-    AudioStreamBasicDescription format;
-    format.mSampleRate = pFormat->samplesPerSecond;
-    format.mFormatID = kAudioFormatLinearPCM;
-    format.mFramesPerPacket = 1;
-    format.mChannelsPerFrame = pFormat->numberOfChannels;
-    format.mBytesPerPacket = (pFormat->sampleResolution >> 3) * pFormat->numberOfChannels;
-    format.mBytesPerFrame = format.mBytesPerPacket;
-    format.mBitsPerChannel = pFormat->sampleResolution;
-    format.mReserved = 0;
-    format.mFormatFlags = 0;
+    AudioStreamBasicDescription *pCoreAudioFormat = convertFormat(pFormat);
 
-    AudioQueueNewOutput(&format, buffer_complete_callback, pImpl, NULL,
-            kCFRunLoopCommonModes, 0, &pImpl->pQueue);
+    AudioQueueNewOutput(pCoreAudioFormat, buffer_complete_callback, pImpl,
+            NULL, kCFRunLoopCommonModes, 0, &pImpl->pQueue);
+
+    free(pCoreAudioFormat);
 
     pImpl->pBuffersSet = CFSetCreateMutable(NULL, 0, NULL);
 
