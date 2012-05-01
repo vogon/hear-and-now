@@ -20,7 +20,7 @@ typedef struct
     const void *pVtbl;
 
     AudioQueueRef pQueue;
-    CFSetRef pBuffersSet;
+    CFMutableSetRef pBuffersSet;
     CFMutableSetRef pPlayingBuffersSet;
 
     uint8_t *pAudioData;
@@ -47,7 +47,7 @@ const HnAudio_vtbl _HnAudio_Darwin_vtbl =
 static void enqueue_watch(HnAudio_Darwin *pAudioImpl,
         void (*callback)(void *, uint32_t), void *context)
 {
-    WatchCbQueueTag *pNew = (WatchCbQueueTag *)calloc(1, sizeof(WatchCbQueueTag));
+    WatchCbQueueTag *pNew = (WatchCbQueueTag *)malloc(sizeof(WatchCbQueueTag));
 
     pNew->callback = callback;
     pNew->context = context;
@@ -127,32 +127,30 @@ static void buffer_complete_callback(void *inUserData,
 
 HnAudio *hn_darwin_audio_open(HnAudioFormat *pFormat)
 {
-    HnAudio_Darwin *pImpl = (HnAudio_Darwin *)calloc(1, sizeof(HnAudio_Darwin));
+    HnAudio_Darwin *pImpl = (HnAudio_Darwin *)malloc(sizeof(HnAudio_Darwin));
 
     AudioStreamBasicDescription format;
-    format.mSampleRate = 44100.0;
+    format.mSampleRate = pFormat->samplesPerSecond;
     format.mFormatID = kAudioFormatLinearPCM;
     format.mFramesPerPacket = 1;
-    format.mChannelsPerFrame = 1;
-    format.mBytesPerFrame = 1;
-    format.mBytesPerPacket = 1;
-    format.mBitsPerChannel = 8;
+    format.mChannelsPerFrame = pFormat->numberOfChannels;
+    format.mBytesPerPacket = (pFormat->sampleResolution >> 3) * pFormat->numberOfChannels;
+    format.mBytesPerFrame = format.mBytesPerPacket;
+    format.mBitsPerChannel = pFormat->sampleResolution;
     format.mReserved = 0;
     format.mFormatFlags = 0;
 
     AudioQueueNewOutput(&format, buffer_complete_callback, pImpl, NULL,
             kCFRunLoopCommonModes, 0, &pImpl->pQueue);
 
+    pImpl->pBuffersSet = CFSetCreateMutable(NULL, 0, NULL);
 
-    AudioQueueBufferRef pBuffers[AudioQueueBuffer_NUM_BUFFERS];
     for (int i = 0; i < AudioQueueBuffer_NUM_BUFFERS; i++)
     {
-        AudioQueueAllocateBuffer(pImpl->pQueue, AudioQueueBuffer_SIZE,
-                &pBuffers[i]);
+        AudioQueueBufferRef pBuffer;
+        AudioQueueAllocateBuffer(pImpl->pQueue, AudioQueueBuffer_SIZE, &pBuffer);
+        CFSetAddValue(pImpl->pBuffersSet, pBuffer);
     }
-
-    pImpl->pBuffersSet = CFSetCreate(NULL, (const void **)pBuffers,
-            AudioQueueBuffer_NUM_BUFFERS, NULL);
 
     pImpl->pPlayingBuffersSet = CFSetCreateMutable(NULL, 0, NULL);
 
@@ -245,7 +243,9 @@ void hn_darwin_audio_close(HnAudio *pAudio)
 
     hn_mutex_lock(pImpl->pMutex);
 
+    CFRelease(pImpl->pBuffersSet);
     CFRelease(pImpl->pPlayingBuffersSet);
+
     AudioQueueDispose(pImpl->pQueue, true);
 
     hn_mutex_unlock(pImpl->pMutex);
