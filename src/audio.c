@@ -13,18 +13,18 @@
 #include "win32/audio-win32.h"
 #endif
 
-//#ifdef DARWIN
+#ifdef DARWIN
 #include "darwin/audio-darwin.h"
-//#endif
+#endif
 
 HnAudio *hn_audio_open(HnAudioFormat *pFormat) 
 {
-//#ifdef WINDOWS
-//    return hn_win32_audio_open(pFormat);
-//#endif
-//#ifdef DARWIN
+#ifdef WINDOWS
+    return hn_win32_audio_open(pFormat);
+#endif
+#ifdef DARWIN
     return hn_darwin_audio_open(pFormat);
-//#endif
+#endif
 }
 
 void hn_audio_watch(HnAudio *pAudio, void (*callback)(void *, uint32_t), void *context)
