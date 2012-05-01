@@ -47,7 +47,7 @@ const HnAudio_vtbl _HnAudio_Darwin_vtbl =
 static void enqueue_watch(HnAudio_Darwin *pAudioImpl,
         void (*callback)(void *, uint32_t), void *context)
 {
-    WatchCbQueueTag *pNew = (WatchCbQueueTag *)malloc(sizeof(WatchCbQueueTag));
+    WatchCbQueueTag *pNew = (WatchCbQueueTag *)calloc(1, sizeof(WatchCbQueueTag));
 
     pNew->callback = callback;
     pNew->context = context;
@@ -127,7 +127,7 @@ static void buffer_complete_callback(void *inUserData,
 
 HnAudio *hn_darwin_audio_open(HnAudioFormat *pFormat)
 {
-    HnAudio_Darwin *pImpl = (HnAudio_Darwin *)malloc(sizeof(HnAudio_Darwin));
+    HnAudio_Darwin *pImpl = (HnAudio_Darwin *)calloc(1, sizeof(HnAudio_Darwin));
 
     AudioStreamBasicDescription format;
     format.mSampleRate = 44100.0;
