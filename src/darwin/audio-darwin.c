@@ -133,8 +133,8 @@ static AudioStreamBasicDescription *convertFormat(HnAudioFormat *pFormat) {
     result->mFormatID = kAudioFormatLinearPCM;
     result->mFramesPerPacket = 1;
     result->mChannelsPerFrame = pFormat->numberOfChannels;
-    result->mBytesPerPacket = (pFormat->sampleResolution >> 3) * pFormat->numberOfChannels;
-    result->mBytesPerFrame = result->mBytesPerPacket;
+    result->mBytesPerPacket = (pFormat->sampleResolution / 8) * result->mChannelsPerFrame;
+    result->mBytesPerFrame = result->mFramesPerPacket * result->mBytesPerPacket;
     result->mBitsPerChannel = pFormat->sampleResolution;
     result->mReserved = 0;
     result->mFormatFlags = 0;
