@@ -68,7 +68,8 @@ float *gen_square(void *context, uint32_t len)
     Square *square = (Square *)context;
     float *buf = gen_sawtooth(square->saw, len);
     for (int i = 0; i < len; i++) {
-        buf[i] = buf[i] >= square->pwm ? ceil(buf[i]) : floor(buf[i]);
+        float sample = buf[i];
+        buf[i] = sample >= square->pwm ? ceil(sample) : floor(sample);
     }
     return buf;
 }
