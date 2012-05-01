@@ -6,7 +6,7 @@ LDFLAGS = --shared -g
 all: bin/hear-now.dll bin/test.exe
 
 clean:
-	rm -rf bin/*
+	rm -f bin/*
 	find src -name \*.o -exec rm '{}' ';'
 
 .PHONY: all clean

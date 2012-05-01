@@ -133,7 +133,6 @@ void CALLBACK wave_out_proc(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance,
     {
     case WOM_DONE:
     {
-        printf("blah\n");
         WAVEHDR *pHdr = (WAVEHDR *)dwParam1;
         HnAudio_Win32 *pAudioImpl = (HnAudio_Win32 *)dwInstance;
 

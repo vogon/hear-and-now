@@ -75,9 +75,6 @@ void hn_mixer_start(HnMixer *pMixer)
         for (Stream *pStream = pImpl->pFirstStream;
              pStream != NULL; pStream = pStream->pNext)
         {
-            printf(".");
-            fflush(stdout);
-
             /* get unscaled audio data */
             float *source = pStream->callback(pStream->pContext, BUFFER_LENGTH);
 
