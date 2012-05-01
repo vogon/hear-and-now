@@ -16,6 +16,7 @@ windows: bin/hear-now.dll bin/test.exe
 
 darwin: DEFINES = -DDARWIN
 darwin: LIBS = -framework AudioToolbox -framework CoreFoundation
+darwin: CFLAGS += -g
 darwin: bin/libhear-now.dylib bin/test
 
 clean:
