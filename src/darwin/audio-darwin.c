@@ -146,7 +146,8 @@ HnAudio *hn_darwin_audio_open(HnAudioFormat *pFormat)
 
     pImpl->pBuffersSet = CFSetCreateMutable(NULL, 0, NULL);
 
-    for (int i = 0; i < AudioQueueBuffer_NUM_BUFFERS; i++) {
+    for (int i = 0; i < AudioQueueBuffer_NUM_BUFFERS; i++)
+    {
         AudioQueueAllocateBuffer(pImpl->pQueue, AudioQueueBuffer_SIZE,
                 &pImpl->pBuffers[i]);
     }
@@ -191,8 +192,9 @@ static void set_audio(HnAudio_Darwin *pImpl, uint8_t *pData, uint32_t len)
 }
 
 
-static void write_audio_to_buffer(HnAudio_Darwin *pImpl,
-        AudioQueueRef inAQ, AudioQueueBufferRef pBuffer) {
+static void write_audio_to_buffer(HnAudio_Darwin *pImpl, AudioQueueRef inAQ, 
+        AudioQueueBufferRef pBuffer)
+{
     if (CFSetContainsValue(pImpl->pBuffersSet, pBuffer))
     {
         return;
@@ -207,7 +209,8 @@ void hn_darwin_audio_write(HnAudio *pAudio, uint8_t *pData, uint32_t len)
 
     set_audio(pImpl, pData, len);
 
-    for (int i = 0; i < AudioQueueBuffer_NUM_BUFFERS; i++) {
+    for (int i = 0; i < AudioQueueBuffer_NUM_BUFFERS; i++)
+    {
         write_audio_to_buffer(pImpl, pImpl->pQueue, pImpl->pBuffers[i]);
     }
 
@@ -227,7 +230,8 @@ void hn_darwin_audio_write(HnAudio *pAudio, uint8_t *pData, uint32_t len)
     }
 }
 
-uint32_t hn_darwin_audio_samples_pending(HnAudio *pAudio) {
+uint32_t hn_darwin_audio_samples_pending(HnAudio *pAudio)
+{
     HnAudio_Darwin *pImpl = (HnAudio_Darwin *)pAudio;
     return pImpl->buffersPending;
 }
