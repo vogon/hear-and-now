@@ -14,18 +14,18 @@
 extern "C" {
 #endif
 
-typedef struct HnAudio
-{
-	void *pImpl;
-
-    void (*watch)(struct HnAudio *, void (*)(void *, uint32_t), void *);
-    void (*write)(struct HnAudio *, uint8_t *, uint32_t);
-    uint32_t (*samples_pending)(struct HnAudio *);
-
-    void (*close)(struct HnAudio *);
-} HnAudio;
+struct HnAudio;
+typedef struct HnAudio HnAudio;
 
 HnAudio *hn_audio_open();
+
+void hn_audio_watch(HnAudio *pAudio, void (*callback)(void *, uint32_t), void *context);
+
+void hn_audio_write(HnAudio *pAudio, uint8_t *pData, uint32_t len);
+
+uint32_t hn_audio_samples_pending(HnAudio *pAudio);
+
+void hn_audio_close(HnAudio *pAudio);
 
 typedef struct HnMixer
 {

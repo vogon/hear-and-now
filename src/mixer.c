@@ -36,7 +36,7 @@ HnMixer *hn_mixer_create(HnAudio *pAudio)
     pMixerImpl->pFirstStream = pMixerImpl->pLastStream = NULL;
     pMixerImpl->pStreamLock = hn_mutex_create();
 
-    pAudio->watch(pAudio, mixer_internal_audio_cb, pMixerImpl);
+    hn_audio_watch(pAudio, mixer_internal_audio_cb, pMixerImpl);
 
     return pMixer;
 }
@@ -116,9 +116,9 @@ void hn_mixer_start(HnMixer *pMixer)
         /* send it to threadless */
         hn_mutex_lock(pImpl->pAudioLock);
 
-        pImpl->pAudio->write(pImpl->pAudio, intAccum, BUFFER_LENGTH);
+        hn_audio_write(pImpl->pAudio, intAccum, BUFFER_LENGTH);
 
-        if (pImpl->pAudio->samples_pending(pImpl->pAudio) > 5)
+        if (hn_audio_samples_pending(pImpl->pAudio) > 5)
         {
             hn_cv_sleep(pImpl->pAudioLowWater, pImpl->pAudioLock);
         }

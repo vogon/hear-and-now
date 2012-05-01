@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 
+#include "audio.h"
 #include "audio-win32.h"
 
 typedef struct WAVEHDR_QueueTag
@@ -22,14 +23,24 @@ typedef struct WatchCbQueueTag
 
 typedef struct
 {
+    const void *pVtbl;
+
     HWAVEOUT hwo;
     uint32_t headersPending;
 
     WAVEHDR_QueueTag *pFirstUnprepare, *pLastUnprepare;
     WatchCbQueueTag *pFirstWatchCb, *pLastWatchCb;
-} HnAudio_impl_Win32;
+} HnAudio_Win32;
 
-void queue_for_unprepare(HnAudio_impl_Win32 *pAudioImpl, WAVEHDR *pHdr)
+const HnAudio_vtbl _HnAudio_Win32_vtbl =
+    {
+        hn_win32_audio_watch,
+        hn_win32_audio_write,
+        hn_win32_audio_samples_pending,
+        hn_win32_audio_close,
+    };
+
+void queue_for_unprepare(HnAudio_Win32 *pAudioImpl, WAVEHDR *pHdr)
 {
     WAVEHDR_QueueTag *pNew = (WAVEHDR_QueueTag *)malloc(sizeof(WAVEHDR_QueueTag));
     pNew->pHdr = pHdr;
@@ -50,7 +61,7 @@ void queue_for_unprepare(HnAudio_impl_Win32 *pAudioImpl, WAVEHDR *pHdr)
     pAudioImpl->pLastUnprepare = pNew;
 }
 
-void unprepare_all(HnAudio_impl_Win32 *pAudioImpl)
+void unprepare_all(HnAudio_Win32 *pAudioImpl)
 {
     for (WAVEHDR_QueueTag *pTag = pAudioImpl->pFirstUnprepare;
          pTag != NULL;)
@@ -68,7 +79,7 @@ void unprepare_all(HnAudio_impl_Win32 *pAudioImpl)
     pAudioImpl->pFirstUnprepare = pAudioImpl->pLastUnprepare = NULL;
 }
 
-void enqueue_watch(HnAudio_impl_Win32 *pAudioImpl, void (*callback)(void *, uint32_t), void *context)
+void enqueue_watch(HnAudio_Win32 *pAudioImpl, void (*callback)(void *, uint32_t), void *context)
 {
     WatchCbQueueTag *pNew = (WatchCbQueueTag *)malloc(sizeof(WatchCbQueueTag));
 
@@ -91,7 +102,7 @@ void enqueue_watch(HnAudio_impl_Win32 *pAudioImpl, void (*callback)(void *, uint
     pAudioImpl->pLastWatchCb = pNew;    
 }
 
-void signal_pending_all(HnAudio_impl_Win32 *pAudioImpl)
+void signal_pending_all(HnAudio_Win32 *pAudioImpl)
 {
     for (WatchCbQueueTag *pTag = pAudioImpl->pFirstWatchCb; 
          pTag != NULL; pTag = pTag->pNext)
@@ -124,7 +135,7 @@ void CALLBACK wave_out_proc(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance,
     {
         printf("blah\n");
         WAVEHDR *pHdr = (WAVEHDR *)dwParam1;
-        HnAudio_impl_Win32 *pAudioImpl = (HnAudio_impl_Win32 *)dwInstance;
+        HnAudio_Win32 *pAudioImpl = (HnAudio_Win32 *)dwInstance;
 
         /* can't actually unprepare a buffer in this callback, 
            for fear of deadlock */
@@ -139,10 +150,10 @@ void CALLBACK wave_out_proc(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance,
     }
 }
 
-void hn_win32_audio_open(HnAudio *pAudio)
+HnAudio *hn_win32_audio_open()
 {
-    HnAudio_impl_Win32 *pImpl = 
-        (HnAudio_impl_Win32 *)calloc(1, sizeof(HnAudio_impl_Win32));
+    HnAudio_Win32 *pImpl = 
+        (HnAudio_Win32 *)calloc(1, sizeof(HnAudio_Win32));
     
     WAVEFORMATEX wfex;
     build_wfex(&wfex, 44100, 8, 1);
@@ -150,24 +161,19 @@ void hn_win32_audio_open(HnAudio *pAudio)
     waveOutOpen(&(pImpl->hwo), 0, &wfex, (DWORD_PTR)wave_out_proc, 
         (DWORD_PTR)pImpl, CALLBACK_FUNCTION);
 
-    pAudio->pImpl = pImpl;
-    pAudio->write = hn_win32_audio_write;
-    pAudio->watch = hn_win32_audio_watch;
-    pAudio->samples_pending = hn_win32_audio_samples_pending;
-    pAudio->close = hn_win32_audio_close;
+    pImpl->pVtbl = &_HnAudio_Win32_vtbl;
+    return (HnAudio *)pImpl;
 }
 
 void hn_win32_audio_watch(HnAudio *pAudio, void (*callback)(void *, uint32_t), void *context)
 {
-    HnAudio_impl_Win32 *pImpl = (HnAudio_impl_Win32 *)pAudio->pImpl;
-
-    enqueue_watch(pImpl, callback, context);
+    enqueue_watch((HnAudio_Win32 *)pAudio, callback, context);
 }
 
 void hn_win32_audio_write(HnAudio *pAudio, uint8_t *pData, uint32_t len)
 {
     WAVEHDR *hdr = (WAVEHDR *)malloc(sizeof(WAVEHDR));
-    HnAudio_impl_Win32 *pImpl = (HnAudio_impl_Win32 *)pAudio->pImpl;
+    HnAudio_Win32 *pImpl = (HnAudio_Win32 *)pAudio;
 
     /* before we enqueue another buffer, unprepare/free previously-played ones */
     unprepare_all(pImpl);
@@ -186,17 +192,16 @@ void hn_win32_audio_write(HnAudio *pAudio, uint8_t *pData, uint32_t len)
 uint32_t hn_win32_audio_samples_pending(HnAudio *pAudio)
 {
     /* note: this code is currently totally busted.  I'll fix it eventually. */
-    HnAudio_impl_Win32 *pImpl = (HnAudio_impl_Win32 *)pAudio->pImpl;
+    HnAudio_Win32 *pImpl = (HnAudio_Win32 *)pAudio;
 
     return pImpl->headersPending;
 }
 
 void hn_win32_audio_close(HnAudio *pAudio)
 {
-    HnAudio_impl_Win32 *pImpl = (HnAudio_impl_Win32 *)pAudio->pImpl;
+    HnAudio_Win32 *pImpl = (HnAudio_Win32 *)pAudio;
 
     waveOutClose(pImpl->hwo);
 
     free(pImpl);
-    free(pAudio);
 }
