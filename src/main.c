@@ -74,6 +74,44 @@ float *gen_square(void *context, uint32_t len)
     return buf;
 }
 
+typedef struct Triangle {
+    Saw *saw;
+    int flip;
+} Triangle;
+
+Triangle *make_triangle(HnAudioFormat *pFormat, float frequency)
+{
+    Triangle *result = (Triangle *)malloc(sizeof(Triangle));
+
+    result->saw = make_sawtooth(pFormat, frequency);
+    result->flip = 0;
+
+    return result;
+}
+
+float *gen_triangle(void *context, uint32_t len)
+{
+    Triangle *triangle = (Triangle *)context;
+    Saw *saw = triangle->saw;
+
+    float *buf = gen_sawtooth(saw, len);
+
+    for (int i = 0; i < len; i++) {
+        float previous = i == 0 ? saw->last : buf[i - 1];
+        float current = buf[i];
+
+        if (previous >= current) {
+            triangle->flip = !triangle->flip;
+        }
+
+        if (triangle->flip) {
+            buf[i] = 1 - current;
+        }
+    }
+
+    return buf;
+}
+
 float up(float root, uint8_t semitones)
 {
     return root * powf(2.0f, (float)semitones / 12.);
@@ -86,12 +124,14 @@ int main()
     float root = 220.0f;
     float third = up(root, 4);
     float fifth = up(root, 7);
-    float octave = up(root, 12);
+    float octave = up(root, 11);
+    float ninth = up(root, 14);
 
-    Saw *saw = make_sawtooth(&fmt, root);
-    Saw *saw2 = make_sawtooth(&fmt, third);
-    Saw *saw3 = make_sawtooth(&fmt, fifth);
-    Square *square = make_square(&fmt, octave, 0.5);
+    Square *square = make_square(&fmt, root, 0.5);
+    Saw *saw = make_sawtooth(&fmt, third);
+    Square *square2 = make_square(&fmt, fifth, 0.25);
+    Saw *saw2 = make_sawtooth(&fmt, octave);
+    Triangle *triangle = make_triangle(&fmt, ninth);
 
     // float *wave = gen_sawtooth(saw, 512);
     
@@ -103,10 +143,11 @@ int main()
     HnAudio *audio = hn_audio_open(&fmt);
     HnMixer *mixer = hn_mixer_create(audio);
 
-    hn_mixer_add_stream(mixer, saw, gen_sawtooth);
-    hn_mixer_add_stream(mixer, saw2, gen_sawtooth);
-    hn_mixer_add_stream(mixer, saw3, gen_sawtooth);
     hn_mixer_add_stream(mixer, square, gen_square);
+    hn_mixer_add_stream(mixer, saw, gen_sawtooth);
+    hn_mixer_add_stream(mixer, square2, gen_square);
+    hn_mixer_add_stream(mixer, saw2, gen_sawtooth);
+    hn_mixer_add_stream(mixer, triangle, gen_triangle);
 
     hn_mixer_start(mixer);
 
