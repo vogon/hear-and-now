@@ -1,2 +1,9 @@
 *.o
-/bin/*
+*.dll
+*.dylib
+bin/[^.]*
+
+.DS_Store*
+ehthumbs.db
+Icon?
+Thumbs.db
