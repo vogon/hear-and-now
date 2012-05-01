@@ -97,7 +97,6 @@ static void buffer_complete_callback(void *inUserData,
     HnAudio_Darwin *pImpl = (HnAudio_Darwin *)inUserData;
     uint8_t *pCoreAudioBuffer = (uint8_t *) inCompleteAQBuffer->mAudioData;
 
-    hn_mutex_lock(pImpl->pMutex);
     if (pImpl->currentPosition < pImpl->audioLength)
     {
         if (!CFSetContainsValue(pImpl->pBuffersSet, inCompleteAQBuffer)) {
@@ -108,19 +107,22 @@ static void buffer_complete_callback(void *inUserData,
         uint32_t amountLeft = pImpl->audioLength -
             pImpl->currentPosition;
 
-        uint32_t bytes;
+        uint32_t numBytes;
         if (amountLeft <= AudioQueueBuffer_SIZE)
         {
-            bytes = amountLeft;
+            numBytes = amountLeft;
         }
         else
         {
-            bytes = AudioQueueBuffer_SIZE;
+            numBytes = AudioQueueBuffer_SIZE;
         }
+
         memcpy(pCoreAudioBuffer, &pImpl->pAudioData[pImpl->currentPosition],
-                bytes);
-        pImpl->currentPosition += bytes;
-        inCompleteAQBuffer->mAudioDataByteSize = bytes;
+                numBytes);
+
+        pImpl->currentPosition += numBytes;
+        inCompleteAQBuffer->mAudioDataByteSize = numBytes;
+
         hn_mutex_unlock(pImpl->pMutex);
 
         AudioQueueEnqueueBuffer(inAQ, inCompleteAQBuffer, 0, NULL);
@@ -131,9 +133,9 @@ static void buffer_complete_callback(void *inUserData,
             pImpl->buffersPending--;
             CFSetRemoveValue(pImpl->pBuffersSet, inCompleteAQBuffer);
         }
+        hn_mutex_unlock(pImpl->pMutex);
     }
 
-    hn_mutex_unlock(pImpl->pMutex);
     signal_pending_all(pImpl);
 }
 
@@ -209,8 +211,6 @@ void hn_darwin_audio_write(HnAudio *pAudio, uint8_t *pData, uint32_t len)
         AudioQueuePrime(pImpl->pQueue, 0, NULL);
         AudioQueueStart(pImpl->pQueue, NULL);
     }
-
-    signal_pending_all(pImpl);
 }
 
 uint32_t hn_darwin_audio_samples_pending(HnAudio *pAudio) {
