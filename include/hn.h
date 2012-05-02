@@ -48,6 +48,19 @@ void hn_mixer_add_stream(HnMixer *pMixer, void *pContext,
 
 void hn_mixer_start(HnMixer *pMixer);
 
+struct HnSequencer;
+typedef struct HnSequencer HnSequencer;
+
+HnSequencer *hn_sequencer_create();
+
+void hn_sequencer_release(HnSequencer *pSeq);
+
+void hn_sequencer_set_transport(HnSequencer *pSeq, HnMixer *pMixer);
+
+void hn_sequencer_play(HnSequencer *pSeq);
+
+void hn_sequencer_set_bpm(HnSequencer *pSeq, float bpm);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
