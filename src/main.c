@@ -164,6 +164,8 @@ int main()
         hn_mixer_add_stream(mixer, triangles[i], triangles[i]->generate);
     }
 
+    // hn_sequencer_create();
+
     hn_mixer_start(mixer);
 
     // audio->close(audio);
