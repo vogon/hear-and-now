@@ -30,7 +30,7 @@ typedef struct
 
     bool started;
 
-    CFMutableArrayRef pCallbacksWithContext;
+    CFMutableArrayRef pCallbacksWithContexts;
 
     HnMutex *pMutex;
 } HnAudio_Darwin;
@@ -50,7 +50,7 @@ static void enqueue_watch(HnAudio_Darwin *pImpl, void (*callback)(void *, uint32
         calloc(1, sizeof(CallbackWithContext));
     pCallbackWithContext->callback = callback;
     pCallbackWithContext->context = context;
-    CFArrayAppendValue(pImpl->pCallbacksWithContext, pCallbackWithContext);
+    CFArrayAppendValue(pImpl->pCallbacksWithContexts, pCallbackWithContext);
 }
 
 static void signal_applier(const void* value, void *context) {
@@ -61,9 +61,9 @@ static void signal_applier(const void* value, void *context) {
 
 static void signal_pending_all(HnAudio_Darwin *pImpl)
 {
-    CFMutableArrayRef pCallbacksWithContext = pImpl->pCallbacksWithContext;
-    CFRange range = CFRangeMake(0, CFArrayGetCount(pCallbacksWithContext));
-    CFArrayApplyFunction(pCallbacksWithContext, range, signal_applier, pImpl);
+    CFMutableArrayRef pCallbacksWithContexts = pImpl->pCallbacksWithContexts;
+    CFRange range = CFRangeMake(0, CFArrayGetCount(pCallbacksWithContexts));
+    CFArrayApplyFunction(pCallbacksWithContexts, range, signal_applier, pImpl);
 }
 
 static void buffer_complete_callback(void *inUserData, 
@@ -145,7 +145,7 @@ HnAudio *hn_darwin_audio_open(HnAudioFormat *pFormat)
 
     free(pCoreAudioFormat);
 
-    pImpl->pCallbacksWithContext = CFArrayCreateMutable(NULL, 0, NULL);
+    pImpl->pCallbacksWithContexts = CFArrayCreateMutable(NULL, 0, NULL);
 
     pImpl->pBuffersSet = CFSetCreateMutable(NULL, 0, NULL);
 
@@ -251,6 +251,8 @@ void hn_darwin_audio_close(HnAudio *pAudio)
     CFRelease(pImpl->pPlayingBuffersSet);
 
     AudioQueueDispose(pImpl->pQueue, true);
+
+    CFRelease(pImpl->pCallbacksWithContexts);
 
     hn_mutex_unlock(pImpl->pMutex);
 
