@@ -43,20 +43,10 @@ const HnAudio_vtbl _HnAudio_Darwin_vtbl =
     hn_darwin_audio_close,
 };
 
-static void enqueue_watch(HnAudio_Darwin *pImpl, void (*callback)(void *, uint32_t),
-        void *context)
-{
-    CallbackWithContext *pCallbackWithContext = (CallbackWithContext *)
-        calloc(1, sizeof(CallbackWithContext));
-    pCallbackWithContext->callback = callback;
-    pCallbackWithContext->context = context;
-    CFArrayAppendValue(pImpl->pCallbacksWithContexts, pCallbackWithContext);
-}
-
 static void signal_applier(const void* value, void *context) {
     CallbackWithContext *pCallbackWithContext = (CallbackWithContext *)value;
-    HnAudio_Darwin *pImpl = (HnAudio_Darwin *) context;
-    pCallbackWithContext->callback(pCallbackWithContext->context, pImpl->buffersPending);
+    pCallbackWithContext->callback(pCallbackWithContext->context,
+            ((HnAudio_Darwin *)context)->buffersPending);
 }
 
 static void signal_pending_all(HnAudio_Darwin *pImpl)
@@ -70,7 +60,6 @@ static void buffer_complete_callback(void *inUserData,
         AudioQueueRef inAQ, AudioQueueBufferRef inCompleteAQBuffer)
 {
     HnAudio_Darwin *pImpl = (HnAudio_Darwin *)inUserData;
-    uint8_t *pAudioData = (uint8_t *) inCompleteAQBuffer->mAudioData;
 
     if (pImpl->currentPosition < pImpl->audioLength)
     {
@@ -80,8 +69,7 @@ static void buffer_complete_callback(void *inUserData,
             CFSetAddValue(pImpl->pPlayingBuffersSet, inCompleteAQBuffer);
         }
 
-        uint32_t amountLeft = pImpl->audioLength -
-            pImpl->currentPosition;
+        uint32_t amountLeft = pImpl->audioLength - pImpl->currentPosition;
 
         uint32_t numBytes;
         if (amountLeft <= AudioQueueBuffer_SIZE)
@@ -93,9 +81,8 @@ static void buffer_complete_callback(void *inUserData,
             numBytes = AudioQueueBuffer_SIZE;
         }
 
-        memcpy(pAudioData, &pImpl->pAudioData[pImpl->currentPosition],
-                numBytes);
-
+        memcpy((uint8_t *) inCompleteAQBuffer->mAudioData,
+                &pImpl->pAudioData[pImpl->currentPosition], numBytes);
         pImpl->currentPosition += numBytes;
 
         hn_mutex_unlock(pImpl->pMutex);
@@ -117,19 +104,18 @@ static void buffer_complete_callback(void *inUserData,
     signal_pending_all(pImpl);
 }
 
-static AudioStreamBasicDescription *convertFormat(HnAudioFormat *pFormat) {
-    AudioStreamBasicDescription *result = (AudioStreamBasicDescription *)
-        calloc(1, sizeof(AudioStreamBasicDescription));
+static AudioStreamBasicDescription convert_format(HnAudioFormat *pFormat) {
+    AudioStreamBasicDescription result;
 
-    result->mSampleRate = pFormat->samplesPerSecond;
-    result->mFormatID = kAudioFormatLinearPCM;
-    result->mFramesPerPacket = 1;
-    result->mChannelsPerFrame = pFormat->numberOfChannels;
-    result->mBytesPerPacket = (pFormat->sampleResolution / 8) * result->mChannelsPerFrame;
-    result->mBytesPerFrame = result->mFramesPerPacket * result->mBytesPerPacket;
-    result->mBitsPerChannel = pFormat->sampleResolution;
-    result->mReserved = 0;
-    result->mFormatFlags = 0;
+    result.mSampleRate = pFormat->samplesPerSecond;
+    result.mFormatID = kAudioFormatLinearPCM;
+    result.mFramesPerPacket = 1;
+    result.mChannelsPerFrame = pFormat->numberOfChannels;
+    result.mBytesPerPacket = (pFormat->sampleResolution / 8) * result.mChannelsPerFrame;
+    result.mBytesPerFrame = result.mFramesPerPacket * result.mBytesPerPacket;
+    result.mBitsPerChannel = pFormat->sampleResolution;
+    result.mReserved = 0;
+    result.mFormatFlags = 0;
 
     return result;
 }
@@ -138,17 +124,14 @@ HnAudio *hn_darwin_audio_open(HnAudioFormat *pFormat)
 {
     HnAudio_Darwin *pImpl = (HnAudio_Darwin *)malloc(sizeof(HnAudio_Darwin));
 
-    AudioStreamBasicDescription *pCoreAudioFormat = convertFormat(pFormat);
+    pImpl->pVtbl = &_HnAudio_Darwin_vtbl;
 
-    AudioQueueNewOutput(pCoreAudioFormat, buffer_complete_callback, pImpl,
+    AudioStreamBasicDescription description = convert_format(pFormat);
+
+    AudioQueueNewOutput(&description, buffer_complete_callback, pImpl,
             NULL, kCFRunLoopCommonModes, 0, &pImpl->pQueue);
 
-    free(pCoreAudioFormat);
-
-    pImpl->pCallbacksWithContexts = CFArrayCreateMutable(NULL, 0, NULL);
-
     pImpl->pBuffersSet = CFSetCreateMutable(NULL, 0, NULL);
-
     for (int i = 0; i < AudioQueueBuffer_NUM_BUFFERS; i++)
     {
         AudioQueueBufferRef pBuffer;
@@ -158,8 +141,9 @@ HnAudio *hn_darwin_audio_open(HnAudioFormat *pFormat)
 
     pImpl->pPlayingBuffersSet = CFSetCreateMutable(NULL, 0, NULL);
 
+    pImpl->pCallbacksWithContexts = CFArrayCreateMutable(NULL, 0, NULL);
+
     pImpl->pMutex = hn_mutex_create();
-    pImpl->pVtbl = &_HnAudio_Darwin_vtbl;
 
     return (HnAudio *)pImpl;
 }
@@ -167,7 +151,13 @@ HnAudio *hn_darwin_audio_open(HnAudioFormat *pFormat)
 void hn_darwin_audio_watch(HnAudio *pAudio, void (*callback)(void *, uint32_t),
         void *context)
 {
-    enqueue_watch((HnAudio_Darwin *)pAudio, callback, context);
+    HnAudio_Darwin *pImpl = (HnAudio_Darwin *)pAudio;
+
+    CallbackWithContext *pCallbackWithContext = (CallbackWithContext *)
+        calloc(1, sizeof(CallbackWithContext));
+    pCallbackWithContext->callback = callback;
+    pCallbackWithContext->context = context;
+    CFArrayAppendValue(pImpl->pCallbacksWithContexts, pCallbackWithContext);
 }
 
 static void reset_audio(HnAudio_Darwin *pImpl)
@@ -235,8 +225,7 @@ void hn_darwin_audio_write(HnAudio *pAudio, uint8_t *pData, uint32_t len)
 
 uint32_t hn_darwin_audio_samples_pending(HnAudio *pAudio)
 {
-    HnAudio_Darwin *pImpl = (HnAudio_Darwin *)pAudio;
-    return pImpl->buffersPending;
+    return ((HnAudio_Darwin *)pAudio)->buffersPending;
 }
 
 void hn_darwin_audio_close(HnAudio *pAudio)
