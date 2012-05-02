@@ -147,12 +147,12 @@ int main()
     float octave = up(root, 11);
     float ninth = up(root, 14);
 
-    Triangle *triangles[5] = {
-        make_triangle(&fmt, root),
-        make_triangle(&fmt, third),
-        make_triangle(&fmt, fifth),
-        make_triangle(&fmt, octave),
-        make_triangle(&fmt, ninth)
+    Square *squares[5] = {
+        make_square(&fmt, root, 0.5),
+        make_square(&fmt, third, 0.45),
+        make_square(&fmt, fifth, 0.4),
+        make_square(&fmt, octave, 0.35),
+        make_square(&fmt, ninth, 0.3)
     };
 
     // float *wave = gen_sawtooth(saw, 512);
@@ -166,7 +166,7 @@ int main()
     HnMixer *mixer = hn_mixer_create(audio);
 
     for (int i = 0; i < 5; i++) {
-        hn_mixer_add_stream(mixer, triangles[i], triangles[i]->generate);
+        hn_mixer_add_stream(mixer, squares[i], squares[i]->generate);
     }
 
     hn_mixer_start(mixer);
