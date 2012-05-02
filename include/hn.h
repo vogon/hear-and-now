@@ -39,12 +39,17 @@ typedef struct HnMixer
     void *pImpl;
 } HnMixer;
 
+typedef float *(*HnGeneratorFn) 
+    (void *pContext,
+     uint64_t start,
+     uint32_t length);
+
 HnMixer *hn_mixer_create(HnAudio *pAudio);
 
 void hn_mixer_release(HnMixer *pMixer);
 
 void hn_mixer_add_stream(HnMixer *pMixer, void *pContext,
-    float *(*callback)(void *, uint32_t));
+    HnGeneratorFn callback);
 
 void hn_mixer_start(HnMixer *pMixer);
 

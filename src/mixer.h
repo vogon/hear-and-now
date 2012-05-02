@@ -21,11 +21,13 @@ typedef struct Stream
 
     void *pContext;
     float volume;
-    float *(*callback)(void *, uint32_t);
+    HnGeneratorFn callback;
 } Stream;
 
 typedef struct 
 {
+    uint64_t samplesMixed;
+
     HnAudio *pAudio;
     uint32_t audioLowWater;
     HnMutex *pAudioLock;

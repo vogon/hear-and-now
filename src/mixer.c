@@ -28,6 +28,8 @@ HnMixer *hn_mixer_create(HnAudio *pAudio)
 
     pMixer->pImpl = pMixerImpl;
 
+    pMixerImpl->samplesMixed = 0;
+
     pMixerImpl->pAudio = pAudio;
     pMixerImpl->audioLowWater = 1;
     pMixerImpl->pAudioLock = hn_mutex_create();
@@ -48,7 +50,7 @@ void hn_mixer_release(HnMixer *pMixer)
 }
 
 void hn_mixer_add_stream(HnMixer *pMixer, void *pContext,
-                         float *(*callback)(void *, uint32_t))
+                         HnGeneratorFn callback)
 {
     HnMixer_impl *pImpl = pMixer->pImpl;
 
@@ -76,7 +78,18 @@ void hn_mixer_start(HnMixer *pMixer)
              pStream != NULL; pStream = pStream->pNext)
         {
             /* get unscaled audio data */
-            float *source = pStream->callback(pStream->pContext, BUFFER_LENGTH);
+            float *source = pStream->callback(pStream->pContext, 0, BUFFER_LENGTH);
+
+            if (!source)
+            {
+                /* 
+                 * allow generators to pass back a null sample block (treat as 
+                 * silence.)  the sequencer will use this for a sync "generator", and
+                 * smart generators could detect that they'll be silent for a whole
+                 * block and save the alloc/memset/add/free.
+                 */
+                continue;
+            }
 
             for (int i = 0; i < BUFFER_LENGTH; i++)
             {
@@ -115,6 +128,10 @@ void hn_mixer_start(HnMixer *pMixer)
 
         hn_audio_write(pImpl->pAudio, intAccum, BUFFER_LENGTH);
 
+        /* update sample accounting */
+        pImpl->samplesMixed += BUFFER_LENGTH;
+
+        /* if we've built up a few blocks of lead, go to sleep */
         if (hn_audio_samples_pending(pImpl->pAudio) > 5)
         {
             hn_cv_sleep(pImpl->pAudioLowWater, pImpl->pAudioLock);

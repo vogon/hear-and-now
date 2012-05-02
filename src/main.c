@@ -8,10 +8,10 @@ typedef struct Saw
 {
     float step;
     float last;
-    float *(*generate)(void *, uint32_t);
+    HnGeneratorFn generate;
 } Saw;
 
-float *gen_sawtooth(void *context, uint32_t len) 
+float *gen_sawtooth(void *context, uint64_t start, uint32_t len) 
 {
     Saw *state = (Saw *)context;
     float *buf = (float *)malloc(len * sizeof(float));
@@ -50,15 +50,15 @@ typedef struct Square
 {
     Saw *saw;
     float pwm;
-    float *(*generate)(void *context, uint32_t len);
+    HnGeneratorFn generate;
 } Square;
 
-float *gen_square(void *context, uint32_t len)
+float *gen_square(void *context, uint64_t start, uint32_t len)
 {
     Square *square = (Square *)context;
     Saw *saw = square->saw;
 
-    float *buf = saw->generate(saw, len);
+    float *buf = saw->generate(saw, start, len);
 
     for (int i = 0; i < len; i++)
     {
@@ -84,15 +84,15 @@ typedef struct Triangle
 {
     Saw *saw;
     int flip;
-    float *(*generate)(void *, uint32_t);
+    HnGeneratorFn generate;
 } Triangle;
 
-float *gen_triangle(void *context, uint32_t len)
+float *gen_triangle(void *context, uint64_t start, uint32_t len)
 {
     Triangle *triangle = (Triangle *)context;
     Saw *saw = triangle->saw;
 
-    float *buf = saw->generate(saw, len);
+    float *buf = saw->generate(saw, start, len);
 
     float previous = saw->last;
     for (int i = 0; i < len; i++)
