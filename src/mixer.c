@@ -11,8 +11,6 @@
 
 #define BUFFER_LENGTH 2048
 
-void mixer_internal_append_stream(HnMixer_impl *, Stream *);
-
 void mixer_internal_audio_cb(void *context, uint32_t pending)
 {
     HnMixer_impl *pMixerImpl = (HnMixer_impl *)context;
@@ -50,18 +48,19 @@ void hn_mixer_release(HnMixer *pMixer)
 }
 
 void hn_mixer_add_stream(HnMixer *pMixer, void *pContext,
-                         HnGeneratorFn callback)
+                         HnGeneratorFn callback, uint8_t priority)
 {
     HnMixer_impl *pImpl = pMixer->pImpl;
 
     Stream *pStream = (Stream *)malloc(sizeof(Stream));
 
+    pStream->priority = priority;
     pStream->pContext = pContext;
     pStream->volume = 0.2f;
     pStream->callback = callback;
     pStream->pNext = pStream->pPrev = NULL;
 
-    mixer_internal_append_stream(pImpl, pStream);
+    mixer_internal_add_stream(pImpl, pStream);
 }
 
 void hn_mixer_start(HnMixer *pMixer)
@@ -141,24 +140,50 @@ void hn_mixer_start(HnMixer *pMixer)
     }
 }
 
-void mixer_internal_append_stream(HnMixer_impl *pMixerImp, Stream *pStream)
+void mixer_internal_add_stream(HnMixer_impl *pMixerImp, Stream *pStream)
 {
     hn_mutex_lock(pMixerImp->pStreamLock);
 
-    Stream *pPrev = pMixerImp->pLastStream;
+    Stream *pPrev = NULL, *pNext = pMixerImp->pFirstStream;
+
+    /* find proper insertion point; cursor is pNext, previous is pPrev */
+    while (pNext != NULL)
+    {
+        if (pNext->priority < pStream->priority)
+        {
+            /* 
+             * stream at cursor is lower-prio than the new one,
+             * insert before this stream 
+             */
+            break;
+        }
+    }
+
+    /* insert */
 
     if (NULL != pPrev)
     {
+        /* fix up back links */
         pStream->pPrev = pPrev;
         pPrev->pNext = pStream;
     }
-
-    if (NULL == pMixerImp->pFirstStream)
+    else
     {
+        /* pPrev == NULL -> pStream is first */
         pMixerImp->pFirstStream = pStream;
     }
 
-    pMixerImp->pLastStream = pStream;
+    if (NULL != pNext)
+    {
+        /* fix up forward links */
+        pStream->pNext = pNext;
+        pNext->pPrev = pStream;
+    }
+    else
+    {
+        /* pNext == NULL -> pStream is last */
+        pMixerImp->pLastStream = pStream;
+    }
 
     hn_mutex_unlock(pMixerImp->pStreamLock);
 }

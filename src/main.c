@@ -161,7 +161,7 @@ int main()
     HnMixer *mixer = hn_mixer_create(audio);
 
     for (int i = 0; i < 5; i++) {
-        hn_mixer_add_stream(mixer, triangles[i], triangles[i]->generate);
+        hn_mixer_add_stream(mixer, triangles[i], triangles[i]->generate, 0);
     }
 
     // hn_sequencer_create();

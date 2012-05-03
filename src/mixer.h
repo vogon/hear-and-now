@@ -18,6 +18,7 @@ extern "C" {
 typedef struct Stream
 {
     struct Stream *pNext, *pPrev;
+    uint8_t priority;
 
     void *pContext;
     float volume;
@@ -36,6 +37,8 @@ typedef struct
     Stream *pFirstStream, *pLastStream;
     HnMutex *pStreamLock;
 } HnMixer_impl;
+
+void mixer_internal_add_stream(HnMixer_impl *, Stream *);
 
 #ifdef __cplusplus
 }

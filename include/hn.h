@@ -49,7 +49,7 @@ HnMixer *hn_mixer_create(HnAudio *pAudio);
 void hn_mixer_release(HnMixer *pMixer);
 
 void hn_mixer_add_stream(HnMixer *pMixer, void *pContext,
-    HnGeneratorFn callback);
+    HnGeneratorFn callback, uint8_t priority);
 
 void hn_mixer_start(HnMixer *pMixer);
 
