@@ -9,7 +9,7 @@ all: $(call platform,darwin,windows)
 CFLAGS = --std=c99 -I./include -Isrc -Wall -g
 LDFLAGS = --shared -g
 
-OBJS_COMMON = src/audio.o src/mixer.o
+OBJS_COMMON = src/audio.o src/mixer.o src/sequencer.o
 OBJS_WIN32 = src/win32/audio-win32.o src/locks-pthread.o
 OBJS_DARWIN = src/darwin/audio-darwin.o src/locks-pthread.o
 

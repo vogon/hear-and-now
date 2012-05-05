@@ -56,11 +56,19 @@ void hn_mixer_start(HnMixer *pMixer);
 struct HnSequencer;
 typedef struct HnSequencer HnSequencer;
 
+/*
+ * a "jiffy" is the length of one 256th-note.
+ *
+ * at 400bpm 4/4, a 32-bit jiffies count should be enough for 
+ * 116 days or so of performance.
+ */
+typedef uint32_t jiffies_t;
+
 HnSequencer *hn_sequencer_create();
 
 void hn_sequencer_release(HnSequencer *pSeq);
 
-void hn_sequencer_set_transport(HnSequencer *pSeq, HnMixer *pMixer);
+void hn_sequencer_attach(HnSequencer *pSeq, HnMixer *pMixer);
 
 void hn_sequencer_play(HnSequencer *pSeq);
 

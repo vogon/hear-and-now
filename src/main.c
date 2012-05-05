@@ -3,6 +3,7 @@
 #include <math.h>
 
 #include "hn.h"
+#include "12tet.h"
 
 typedef struct Saw
 {
@@ -127,28 +128,23 @@ Triangle *make_triangle(HnAudioFormat *pFormat, float frequency)
     return result;
 }
 
-float up(float root, uint8_t semitones)
-{
-    return root * powf(2.0f, (float)semitones / 12.);
-}
-
 int main() 
 {
     HnAudioFormat fmt = { 44100, 8, 1 };
 
-    float root = 220.0f;
-    float third = up(root, 4);
-    float fifth = up(root, 7);
-    float octave = up(root, 11);
-    float ninth = up(root, 14);
+    // float root = A4_12TET;
+    // float third = up_12tet(root, 4);
+    // float fifth = up_12tet(root, 7);
+    // float octave = up_12tet(root, 11);
+    // float ninth = up_12tet(root, 14);
 
-    Triangle *triangles[5] = {
-        make_triangle(&fmt, root),
-        make_triangle(&fmt, third),
-        make_triangle(&fmt, fifth),
-        make_triangle(&fmt, octave),
-        make_triangle(&fmt, ninth)
-    };
+    // Triangle *triangles[5] = {
+    //     make_triangle(&fmt, root),
+    //     make_triangle(&fmt, third),
+    //     make_triangle(&fmt, fifth),
+    //     make_triangle(&fmt, octave),
+    //     make_triangle(&fmt, ninth)
+    // };
 
     // float *wave = gen_sawtooth(saw, 512);
     
@@ -160,11 +156,16 @@ int main()
     HnAudio *audio = hn_audio_open(&fmt);
     HnMixer *mixer = hn_mixer_create(audio);
 
-    for (int i = 0; i < 5; i++) {
-        hn_mixer_add_stream(mixer, triangles[i], triangles[i]->generate, 0);
-    }
+    // for (int i = 0; i < 5; i++) {
+    //     hn_mixer_add_stream(mixer, triangles[i], triangles[i]->generate, 0);
+    // }
 
     // hn_sequencer_create();
+
+    HnSequencer *seq = hn_sequencer_create();
+
+    hn_sequencer_attach(seq, mixer);
+    hn_sequencer_play(seq);
 
     hn_mixer_start(mixer);
 

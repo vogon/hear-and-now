@@ -157,6 +157,9 @@ void mixer_internal_add_stream(HnMixer_impl *pMixerImp, Stream *pStream)
              */
             break;
         }
+
+        pPrev = pNext;
+        pNext = pNext->pNext;
     }
 
     /* insert */
