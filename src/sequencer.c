@@ -6,6 +6,8 @@
 #include "hn.h"
 #include "sequencer.h"
 
+// #include <windows.h>
+
 #include <stdlib.h>
 #include <memory.h>
 
@@ -64,7 +66,7 @@ float *seq_internal_sync(void *pContext, uint64_t start, uint32_t length)
             {
                 pSeq->clicks[pSeq->nextClick] = sample;
                 pSeq->nextClick++;
-                // printf("click at %u, jiffy %u\n", sample, jiffy);
+                // printf("[%u] click at %u, jiffy %u\n", GetTickCount(), (uint16_t)sample, jiffy);
             }
         }
 
