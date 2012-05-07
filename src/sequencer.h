@@ -16,11 +16,10 @@
 extern "C" {
 #endif
 
+#define JIFFIES_PER_WHOLE 256
+
 typedef struct
 {
-    uint64_t startSample;
-    jiffies_t startJiffy;
-
     /* 
      * jiffy tempo = number of jiffies per second. 
      * in 4/4, jiffy tempo = bpm tempo * 256 / (4 * 60).
@@ -68,6 +67,7 @@ float *seq_internal_sync(void *pContext, uint64_t start, uint32_t length);
 
 float *seq_internal_gen_click(void *pContext, uint64_t start, uint32_t length);
 
+void seq_internal_set_tempo(HnSequencer *pSeq, float jiffyTempo);
 
 #ifdef __cplusplus
 } /* extern "C" */

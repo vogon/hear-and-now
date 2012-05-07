@@ -6,8 +6,6 @@
 #include "hn.h"
 #include "sequencer.h"
 
-// #include <windows.h>
-
 #include <stdlib.h>
 #include <memory.h>
 
@@ -15,8 +13,7 @@
 
 float *seq_internal_gen_click(void *pContext, uint64_t start, uint32_t length)
 {
-    // printf("ahhhhh\n");
-
+    /* TODO: make this click sound less terrible */
     HnSequencer *pSeq = (HnSequencer *)pContext;
     float *data = (float *)calloc(length, sizeof(float));
 
@@ -38,15 +35,13 @@ float *seq_internal_sync(void *pContext, uint64_t start, uint32_t length)
     /* switch to any new time signature we got */
     if (pSeq->pSignature != pSeq->pCommandedSignature)
     {
-        // printf("meep\n");
+        free(pSeq->pSignature);
         pSeq->pSignature = pSeq->pCommandedSignature;
     }
 
     /* if signature is null, we're not playing */
     if (NULL != pSeq->pSignature)
     {
-        // printf("blah\n");
-
         /* test code: reset click state */
         memset(pSeq->clicks, 0xff, sizeof(int32_t) * 10);
         pSeq->nextClick = 0;
@@ -66,7 +61,6 @@ float *seq_internal_sync(void *pContext, uint64_t start, uint32_t length)
             {
                 pSeq->clicks[pSeq->nextClick] = sample;
                 pSeq->nextClick++;
-                // printf("[%u] click at %u, jiffy %u\n", GetTickCount(), (uint16_t)sample, jiffy);
             }
         }
 
@@ -103,11 +97,11 @@ void hn_sequencer_attach(HnSequencer *pSeq, HnMixer *pMixer)
 
 void hn_sequencer_play(HnSequencer *pSeq)
 {
-    pSeq->pCommandedSignature = (HnTimeSignature *)calloc(1, sizeof(HnTimeSignature));
-    pSeq->pCommandedSignature->jiffyTempo = 120.0f;
+    seq_internal_set_tempo(pSeq, 120.0f);
 }
 
-void hn_sequencer_set_bpm(HnSequencer *pSeq, float bpm)
+void seq_internal_set_tempo(HnSequencer *pSeq, float jiffyTempo)
 {
-
+    pSeq->pCommandedSignature = (HnTimeSignature *)calloc(1, sizeof(HnTimeSignature));
+    pSeq->pCommandedSignature->jiffyTempo = jiffyTempo;
 }

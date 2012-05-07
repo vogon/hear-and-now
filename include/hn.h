@@ -72,7 +72,7 @@ void hn_sequencer_attach(HnSequencer *pSeq, HnMixer *pMixer);
 
 void hn_sequencer_play(HnSequencer *pSeq);
 
-void hn_sequencer_set_bpm(HnSequencer *pSeq, float bpm);
+#include "automation.h"
 
 #ifdef __cplusplus
 } /* extern "C" */
