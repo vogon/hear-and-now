@@ -39,9 +39,18 @@ COMMAND_START(HnNoteOnCmd)
     float pitch;
 COMMAND_END(HnNoteOnCmd)
 
-COMMAND_END(HnNoteOffCmd)
+COMMAND_START(HnNoteOffCmd)
     float pitch;
 COMMAND_END(HnNoteOffCmd)
+
+struct HnCmdQueue;
+typedef struct HnCmdQueue HnCmdQueue;
+
+HnCmdQueue *hn_cmd_queue_create();
+
+void hn_cmd_queue_send(HnCmdQueue *pQueue, HnCmd *pCmd);
+
+HnCmd *hn_cmd_queue_pop(HnCmdQueue *pQueue);
 
 #ifdef __cplusplus
 } /* extern "C" */
