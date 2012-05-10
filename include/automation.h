@@ -8,6 +8,8 @@
 #ifndef _HN_AUTOMATION_H
 #define _HN_AUTOMATION_H
 
+#include "hn.h"
+
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -16,7 +18,7 @@ extern "C" {
 
 typedef enum HnCmdCode
 {
-    CmdNoteOn,
+    CmdNoteOn = 1,
     CmdNoteOff,
 } HnCmdCode;
 
@@ -51,6 +53,9 @@ HnCmdQueue *hn_cmd_queue_create();
 void hn_cmd_queue_send(HnCmdQueue *pQueue, HnCmd *pCmd);
 
 HnCmd *hn_cmd_queue_pop(HnCmdQueue *pQueue);
+
+void hn_sequencer_trigger(HnSequencer *pSeq, HnCmdQueue *pQueue, HnCmd *pCmd, 
+    jiffies_t jiffy);
 
 #ifdef __cplusplus
 } /* extern "C" */

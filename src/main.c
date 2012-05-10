@@ -33,10 +33,14 @@ int main()
         hn_mixer_add_stream(mixer, gens[i], hn_fngen_generate, 0);
     }
 
-    // HnSequencer *seq = hn_sequencer_create();
+    HnSequencer *seq = hn_sequencer_create();
+    HnCmdQueue *q = hn_cmd_queue_create();
+    HnNoteOnCmd cmd = { 0, CmdNoteOn, 440.0f };
 
-    // hn_sequencer_attach(seq, mixer);
-    // hn_sequencer_play(seq);
+    hn_sequencer_trigger(seq, q, (HnCmd *)&cmd, 64);
+
+    hn_sequencer_attach(seq, mixer);
+    hn_sequencer_play(seq);
 
     hn_mixer_start(mixer);
 

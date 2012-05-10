@@ -11,6 +11,7 @@
 #include <stdint.h>
 
 #include "hn.h"
+#include "automation.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,6 +33,15 @@ typedef struct
     jiffies_t nextJiffy;
     float nextJiffyStart;
 } HnSequencerBlockState;
+
+typedef struct HnTrigger
+{
+    jiffies_t jiffy;
+    HnCmdQueue *pQueue;
+    HnCmd *pCmd;
+
+    struct HnTrigger *pNext;
+} HnTrigger;
 
 /*
  * attach:
@@ -58,9 +68,7 @@ struct HnSequencer
     HnTimeSignature *pCommandedSignature;
     HnSequencerBlockState *pNextBlock;
 
-    /* test code: block offsets of pending clicks */
-    int32_t clicks[10];
-    uint32_t nextClick; 
+    HnTrigger *pFirstTrigger;
 };
 
 float *seq_internal_sync(void *pContext, uint64_t start, uint32_t length);
@@ -68,6 +76,10 @@ float *seq_internal_sync(void *pContext, uint64_t start, uint32_t length);
 float *seq_internal_gen_click(void *pContext, uint64_t start, uint32_t length);
 
 void seq_internal_set_tempo(HnSequencer *pSeq, float jiffyTempo);
+
+void seq_internal_trigger_insert(HnSequencer *pSeq, HnTrigger *pTrig);
+
+void seq_internal_awaken_all(HnSequencer *pSeq, jiffies_t jiffy, uint32_t sample);
 
 #ifdef __cplusplus
 } /* extern "C" */

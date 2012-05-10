@@ -11,23 +11,6 @@
 
 #define SAMPLE_RATE 44100
 
-float *seq_internal_gen_click(void *pContext, uint64_t start, uint32_t length)
-{
-    /* TODO: make this click sound less terrible */
-    HnSequencer *pSeq = (HnSequencer *)pContext;
-    float *data = (float *)calloc(length, sizeof(float));
-
-    for (int i = 0; i < 10; i++)
-    {
-        if (pSeq->clicks[i] >= 0)
-        {
-            data[pSeq->clicks[i]] = 1.0f;
-        }
-    }
-
-    return data;
-}
-
 float *seq_internal_sync(void *pContext, uint64_t start, uint32_t length)
 {
     HnSequencer *pSeq = (HnSequencer *)pContext;
@@ -42,10 +25,6 @@ float *seq_internal_sync(void *pContext, uint64_t start, uint32_t length)
     /* if signature is null, we're not playing */
     if (NULL != pSeq->pSignature)
     {
-        /* test code: reset click state */
-        memset(pSeq->clicks, 0xff, sizeof(int32_t) * 10);
-        pSeq->nextClick = 0;
-
         float samplesPerJiffy = (float)SAMPLE_RATE / pSeq->pSignature->jiffyTempo;
         jiffies_t jiffy;
         float sample;
@@ -56,12 +35,7 @@ float *seq_internal_sync(void *pContext, uint64_t start, uint32_t length)
              sample < length;
              jiffy++, sample += samplesPerJiffy)
         {
-            /* test code: play click if jiffy % 64 == 0 */
-            if (jiffy % 64 == 0)
-            {
-                pSeq->clicks[pSeq->nextClick] = sample;
-                pSeq->nextClick++;
-            }
+            seq_internal_awaken_all(pSeq, jiffy, sample);
         }
 
         /* leave a record for the next block */
@@ -89,7 +63,6 @@ void hn_sequencer_attach(HnSequencer *pSeq, HnMixer *pMixer)
     pSeq->pMixer = pMixer;
 
     hn_mixer_add_stream(pMixer, pSeq, seq_internal_sync, 255);
-    hn_mixer_add_stream(pMixer, pSeq, seq_internal_gen_click, 0);
 
     pSeq->pNextBlock = 
         (HnSequencerBlockState *)calloc(1, sizeof(HnSequencerBlockState));
@@ -100,8 +73,84 @@ void hn_sequencer_play(HnSequencer *pSeq)
     seq_internal_set_tempo(pSeq, 120.0f);
 }
 
+void hn_sequencer_trigger(HnSequencer *pSeq, HnCmdQueue *pQueue, HnCmd *pCmd, 
+    jiffies_t jiffy)
+{
+    HnTrigger *pTrig = (HnTrigger *)calloc(1, sizeof(HnTrigger));
+
+    pTrig->jiffy = jiffy;
+    pTrig->pQueue = pQueue;
+    pTrig->pCmd = pCmd;
+    pTrig->pNext = NULL;
+
+    seq_internal_trigger_insert(pSeq, pTrig);
+}
+
 void seq_internal_set_tempo(HnSequencer *pSeq, float jiffyTempo)
 {
     pSeq->pCommandedSignature = (HnTimeSignature *)calloc(1, sizeof(HnTimeSignature));
     pSeq->pCommandedSignature->jiffyTempo = jiffyTempo;
+}
+
+void seq_internal_trigger_insert(HnSequencer *pSeq, HnTrigger *pTrig)
+{
+    /* 
+     * traverse trigger list, insert before all triggers on equal or greater
+     * jiffies 
+     */
+    HnTrigger *pPrev = NULL, *pNext = pSeq->pFirstTrigger;
+
+    while (pNext != NULL) 
+    {
+        if (pNext->jiffy >= pTrig->jiffy)
+        {
+            /* pNext comes after pTrig, insert pTrig here */
+            pPrev->pNext = pTrig;
+            break;
+        }
+
+        pPrev = pNext;
+        pNext = pNext->pNext;
+    }
+
+    if (pPrev == NULL)
+    {
+        pSeq->pFirstTrigger = pTrig;
+    }
+}
+
+void seq_internal_awaken_all(HnSequencer *pSeq, jiffies_t jiffy, uint32_t sample)
+{
+    /*
+     * traverse trigger list, trigger all at <= jiffy
+     */
+    HnTrigger *pTrig = pSeq->pFirstTrigger;
+
+    while (pTrig != NULL)
+    {
+        if (pTrig->jiffy <= jiffy)
+        {
+            HnTrigger *pNext = pTrig->pNext;
+
+            /* update local sample count */
+            pTrig->pCmd->sample = sample;
+
+            /* send the message and then free the trigger */
+            printf("boop (%d)\n", pTrig->pCmd->code);
+            hn_cmd_queue_send(pTrig->pQueue, pTrig->pCmd);
+            free(pTrig);
+
+            /* move on */
+            pTrig = pNext;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    /*
+     * pTrig is the first un-fired trigger. update the trigger list to point to it.
+     */
+    pSeq->pFirstTrigger = pTrig;
 }
