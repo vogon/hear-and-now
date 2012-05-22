@@ -1,4 +1,4 @@
-hear-now
+hear&now
 ========
 
 hear&amp;now is a lightweight interactive audio mixer library for cool dudes
@@ -12,16 +12,16 @@ architecture
 ============
 
 disclaimers
-===========
+-----------
 we've only tested the following set of native audio formats:
 
-    44100Hz / 8-bit / mono
+- 44100Hz / 8-bit / mono
 
 it's a pretty small set.  where you read "native X", read "native X in 
 principle, but really it has to be one of those formats I saw earlier."
 
 Audio
-=====
+-----
 
 the Audio object is an minimal PCM audio device.  it plays audio at the 
 sample rate and bit depth you request when opening it, and will not hold 
@@ -33,7 +33,7 @@ buffer is finished so you can free it or keep track of how much audio Audio
 still has ready or whatever your consumer needs to do.
 
 Mixer
-=====
+-----
 
 the Mixer object is a simple audio mixer.  its input is an arbitrary number of
 floating-point (0-1.0) audio streams with the native sample rate and number of 
@@ -45,7 +45,7 @@ register a generator callback with Mixer, which Mixer then calls whenever it
 feels that it needs to go to the audio store to get some more audio.
 
 automation, Cmds, and CmdQueues
-===============================
+-------------------------------
 
 audio generators (or, really, pretty much anything) can be controlled
 automatically by Cmd objects.  they create CmdQueues and expose them to their
@@ -53,7 +53,7 @@ controllers.  the owner of the CmdQueue dequeues Cmds and handles them in a
 generator-specific fashion.
 
 Sequencer
-=========
+---------
 
 the Sequencer object is a minimal audio sequencer.  it lies outside of the
 Audio/Mixer/generator stack.  the Sequencer deals with musical time -- that
