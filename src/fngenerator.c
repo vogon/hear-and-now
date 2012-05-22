@@ -53,12 +53,12 @@ float *hn_fngen_generate(void *context, uint64_t start, uint32_t len)
 
 float hn_square(float theta)
 {
-    return (theta - M_PI > 0) ? 1 : 0;
+    return (theta - M_PI > 0) ? 1 : -1;
 }
 
 float hn_triangle(float theta)
 {
-    float f = fabs((theta - M_PI) / M_PI);
+    float f = 2 * fabs((theta - M_PI) / M_PI) - 1;
 
     // printf("%f\n", f);
     return f;
@@ -66,10 +66,10 @@ float hn_triangle(float theta)
 
 float hn_saw(float theta)
 {
-    return theta / (2 * M_PI);
+    return 2 * (theta / (2 * M_PI)) - 1;
 }
 
 float hn_sine(float theta)
 {
-    return (sin(theta) / 2) + 1.0f;
+    return sin(theta);
 }

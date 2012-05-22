@@ -102,30 +102,36 @@ void hn_mixer_start(HnMixer *pMixer)
         hn_mutex_unlock(pImpl->pStreamLock);
 
         /* mix these floats down to int8_t */
-        uint8_t *intAccum = (uint8_t *)malloc(BUFFER_LENGTH);
+        int8_t *intAccum = (int8_t *)malloc(BUFFER_LENGTH);
 
         for (int i = 0; i < BUFFER_LENGTH; i++)
         {
-            if (accum[i] > 1)
+            float scaled = (accum[i] + 1) * 127.5;
+
+            if (scaled > 255)
             {
                 /* clamp to [0, 1] because otherwise oh god */
                 intAccum[i] = 255;
             }
+            else if (scaled < 0)
+            {
+                intAccum[i] = 0;
+            }
             else
             {
-                intAccum[i] = (uint8_t)(accum[i] * 255.);
+                intAccum[i] = scaled;
             }
         }
 
-/*        for (int i = 0; i < BUFFER_LENGTH; i++) 
-        {
-            printf("%hhd, ", intAccum[i]);
-        }
-*/
+        // for (int i = 0; i < BUFFER_LENGTH; i++) 
+        // {
+        //     printf("%hhd, ", intAccum[i]);
+        // }
+
         /* send it to threadless */
         hn_mutex_lock(pImpl->pAudioLock);
 
-        hn_audio_write(pImpl->pAudio, intAccum, BUFFER_LENGTH);
+        hn_audio_write(pImpl->pAudio, (uint8_t *)intAccum, BUFFER_LENGTH);
 
         /* update sample accounting */
         pImpl->samplesMixed += BUFFER_LENGTH;
