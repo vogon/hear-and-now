@@ -28,7 +28,7 @@ int main()
     HnAudio *audio = hn_audio_open(&fmt);
     HnMixer *mixer = hn_mixer_create(audio);
 
-    for (int i = 0; i < 1; i++)
+    for (int i = 0; i < 5; i++)
     {
         hn_mixer_add_stream(mixer, gens[i], hn_fngen_generate, 0);
     }
