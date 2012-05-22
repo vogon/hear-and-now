@@ -2,6 +2,7 @@
 *.dll
 *.dylib
 bin/[^.]*
+*.log
 
 .DS_Store*
 ehthumbs.db
