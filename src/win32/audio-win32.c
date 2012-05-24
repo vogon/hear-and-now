@@ -25,6 +25,7 @@ typedef struct
 {
     const void *pVtbl;
 
+    HnAudioFormat *pFormat;
     HWAVEOUT hwo;
     uint32_t headersPending;
 
@@ -34,6 +35,7 @@ typedef struct
 
 const HnAudio_vtbl _HnAudio_Win32_vtbl =
     {
+        hn_win32_audio_format,
         hn_win32_audio_watch,
         hn_win32_audio_write,
         hn_win32_audio_samples_pending,
@@ -126,6 +128,30 @@ void build_wfex(WAVEFORMATEX *pWfex, DWORD sampleRate, WORD sampleRes, WORD chan
     // cbSize is ignored
 }
 
+MMRESULT check_signedness(HnAudioFormat *pFormat)
+{
+    int ok = 0;
+
+    /*
+     * there's an implicit constraint on the signedness of these audio
+     * devices.  all 8-bit devices are unsigned, all 16-bit devices are
+     * signed (I think; haven't verified this yet).
+     */
+    if (pFormat->sampleResolution == 8 && 
+        pFormat->signedness == HnUnsigned)
+    {
+        ok = 1;        
+    }
+
+    if (pFormat->sampleResolution == 16 &&
+        pFormat->signedness == HnSigned)
+    {
+        ok = 1;
+    }
+
+    return ok ? MMSYSERR_NOERROR : WAVERR_BADFORMAT;
+}
+
 void CALLBACK wave_out_proc(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance, 
     DWORD_PTR dwParam1, DWORD_PTR dwParam2)
 {
@@ -153,6 +179,7 @@ HnAudio *hn_win32_audio_open(HnAudioFormat *pFormat)
 {
     HnAudio_Win32 *pImpl = 
         (HnAudio_Win32 *)calloc(1, sizeof(HnAudio_Win32));
+    MMRESULT result = MMSYSERR_NOERROR;
     
     WAVEFORMATEX wfex;
     build_wfex(&wfex, 
@@ -160,11 +187,28 @@ HnAudio *hn_win32_audio_open(HnAudioFormat *pFormat)
                pFormat->sampleResolution, 
                pFormat->numberOfChannels);
 
-    waveOutOpen(&(pImpl->hwo), 0, &wfex, (DWORD_PTR)wave_out_proc, 
+    result = check_signedness(pFormat);
+    if (MMSYSERR_NOERROR != result) goto Done;
+
+    result = waveOutOpen(&(pImpl->hwo), 0, &wfex, (DWORD_PTR)wave_out_proc, 
         (DWORD_PTR)pImpl, CALLBACK_FUNCTION);
+    if (MMSYSERR_NOERROR != result) goto Done;
 
     pImpl->pVtbl = &_HnAudio_Win32_vtbl;
+Done:
+    if (MMSYSERR_NOERROR != result)
+    {
+        waveOutClose(pImpl->hwo);
+        free(pImpl);
+        pImpl = NULL;
+    }
+
     return (HnAudio *)pImpl;
+}
+
+HnAudioFormat *hn_win32_audio_format(HnAudio *pAudio)
+{
+    return ((HnAudio_Win32 *)pAudio)->pFormat;
 }
 
 void hn_win32_audio_watch(HnAudio *pAudio, void (*callback)(void *, uint32_t), void *context)

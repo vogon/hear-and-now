@@ -21,6 +21,8 @@ extern "C" {
 
 HnAudio *hn_darwin_audio_open(HnAudioFormat *pFormat);
 
+HnAudioFormat *hn_darwin_audio_format(HnAudio *pAudio);
+
 void hn_darwin_audio_watch(HnAudio *pAudio, void (*callback)(void *, uint32_t), void *context);
 
 void hn_darwin_audio_write(HnAudio *pAudio, uint8_t *pData, uint32_t len);

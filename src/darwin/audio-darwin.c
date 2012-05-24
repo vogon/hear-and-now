@@ -37,6 +37,7 @@ typedef struct
 
 const HnAudio_vtbl _HnAudio_Darwin_vtbl =
 {
+    hn_darwin_audio_format,
     hn_darwin_audio_watch,
     hn_darwin_audio_write,
     hn_darwin_audio_samples_pending,
@@ -135,6 +136,12 @@ HnAudio *hn_darwin_audio_open(HnAudioFormat *pFormat)
     pImpl->pMutex = hn_mutex_create();
 
     return (HnAudio *)pImpl;
+}
+
+HnAudioFormat *hn_darwin_audio_format(HnAudio *pAudio)
+{
+    // TODO (rob): unstub
+    return NULL;
 }
 
 void hn_darwin_audio_watch(HnAudio *pAudio, void (*callback)(void *, uint32_t), void *context)

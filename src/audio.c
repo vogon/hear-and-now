@@ -27,6 +27,11 @@ HnAudio *hn_audio_open(HnAudioFormat *pFormat)
 #endif
 }
 
+HnAudioFormat *hn_audio_format(HnAudio *pAudio)
+{
+    return pAudio->pVtbl->format(pAudio);
+}
+
 void hn_audio_watch(HnAudio *pAudio, void (*callback)(void *, uint32_t), void *context)
 {
     pAudio->pVtbl->watch(pAudio, callback, context);

@@ -14,17 +14,26 @@
 extern "C" {
 #endif
 
+typedef enum HnSignedness
+{
+    HnUnsigned = 0,
+    HnSigned
+} HnSignedness;
+
 typedef struct HnAudioFormat
 {
     uint32_t samplesPerSecond;
     uint8_t sampleResolution;
     uint8_t numberOfChannels;
+    HnSignedness signedness;
 } HnAudioFormat;
 
 struct HnAudio;
 typedef struct HnAudio HnAudio;
 
 HnAudio *hn_audio_open(HnAudioFormat *pFormat);
+
+HnAudioFormat *hn_audio_format(HnAudio *pAudio);
 
 void hn_audio_watch(HnAudio *pAudio, void (*callback)(void *, uint32_t), void *context);
 

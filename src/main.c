@@ -8,7 +8,7 @@
 
 int main() 
 {
-    HnAudioFormat fmt = { 44100, 8, 1 };
+    HnAudioFormat fmt = { 44100, 8, 1, HnUnsigned };
 
     float root = A4_12TET;
     float third = up_12tet(root, 4);

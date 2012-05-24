@@ -18,6 +18,7 @@ extern "C" {
 
 typedef struct HnAudio_vtbl
 {
+    HnAudioFormat *(*format)(struct HnAudio *);
     void (*watch)(struct HnAudio *, void (*)(void *, uint32_t), void *);
     void (*write)(struct HnAudio *, uint8_t *, uint32_t);
     uint32_t (*samples_pending)(struct HnAudio *);
